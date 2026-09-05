@@ -1,3 +1,7 @@
+# ProjectPretzelFlick
+
+A Reddit Devvit app that will post movies, anime, and TV episodes when they launch.
+
 ## Devvit React Starter
 
 A starter to build web applications on Reddit's developer platform
