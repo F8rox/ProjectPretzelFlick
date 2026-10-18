@@ -8,6 +8,20 @@
   "menu": {
     "items": [
       {
+        "label": "PretzelFlick: tracked shows",
+        "description": "Add or remove tracked anime",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/tracked-open"
+      },
+      {
+        "label": "PretzelFlick: settings",
+        "description": "Posting options",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/settings-open"
+      },
+      {
         "label": "PretzelFlick: test airing post",
         "description": "Posts one test thread from AniList",
         "location": "subreddit",
@@ -39,5 +53,9 @@
         "cron": "*/10 * * * *"
       }
     }
+  },
+  "forms": {
+    "trackedForm": "/internal/form/tracked-submit",
+    "settingsForm": "/internal/form/settings-submit"
   }
 }

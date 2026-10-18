@@ -1,4 +1,8 @@
 export const config = {
+  /** Mod settings defaults and limits. */
+  defaultAutoPost: true,
+  defaultPostDelayMinutes: 0,
+  maxPostDelayMinutes: 60,
   /** Links per thread are limited to this many before the window slides. */
   linkWindowSize: 50,
   /** An aired episode with no post is still posted if it aired within this many hours. */

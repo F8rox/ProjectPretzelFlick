@@ -3,12 +3,14 @@ import { serve } from '@hono/node-server';
 import { createServer, getServerPort } from '@devvit/web/server';
 import { menu } from './routes/menu';
 import { scheduler } from './routes/scheduler';
+import { forms } from './routes/forms';
 
 const app = new Hono();
 const internal = new Hono();
 
 internal.route('/menu', menu);
 internal.route('/scheduler', scheduler);
+internal.route('/form', forms);
 
 app.route('/internal', internal);
 
