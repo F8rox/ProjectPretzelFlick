@@ -29,3 +29,7 @@ A starter to build web applications on Reddit's developer platform
 - `npm run launch`: Publishes your app for review
 - `npm run login`: Logs your CLI into Reddit
 - `npm run type-check`: Type checks, lints, and prettifies your app
+
+## Fetch Domains
+
+- `graphql.anilist.co`: AniList's public GraphQL API. Used to read anime airing schedules (episode numbers and air times) so the app can post discussion threads when an episode airs. Read-only, no user data sent.

@@ -32,6 +32,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/example-form"
+      },
+      {
+        "label": "PretzelFlick: test airing post",
+        "description": "Posts one test thread from AniList",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/test-airing-post"
       }
     ]
   },
@@ -47,5 +54,22 @@
   },
   "dev": {
     "subreddit": "pretzelflick_dev2"
+  },
+  "permissions": {
+    "http": {
+      "domains": [
+        "graphql.anilist.co"
+      ]
+    },
+    "reddit": true,
+    "redis": true
+  },
+  "scheduler": {
+    "tasks": {
+      "airing-check": {
+        "endpoint": "/internal/scheduler/airing-check",
+        "cron": "*/10 * * * *"
+      }
+    }
   }
 }
