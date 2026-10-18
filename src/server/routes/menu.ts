@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
-import { nextAiring } from '../core/anilist';
+import { fetchAiring } from '../core/anilist';
+import { describeSync, runSync } from './sync';
 import { context, reddit, redis } from '@devvit/web/server';
 import { listShows } from '../core/tracked';
 import { getSettings } from '../core/settings';
@@ -28,6 +29,15 @@ menu.post('/tracked-open', async (c) => {
   });
 });
 
+menu.post('/sync-now', async (c) => {
+  try {
+    return c.json<UiResponse>({ showToast: describeSync(await runSync()) }, 200);
+  } catch (error) {
+    console.error(`sync-now failed: ${error}`);
+    return c.json<UiResponse>({ showToast: `Sync failed: ${error}`.slice(0, 200) }, 200);
+  }
+});
+
 menu.post('/settings-open', async (c) => {
   const settings = await getSettings(redis);
   return c.json<UiResponse>({
@@ -48,12 +58,11 @@ menu.post('/settings-open', async (c) => {
 // MOCK: week-1 test action that posts one thread for the next airing episode. Replaced by "Post next episode now" in Unit 04.
 menu.post('/test-airing-post', async (c) => {
   try {
-    const [a] = await nextAiring();
+    const [a] = await fetchAiring([1], Date.now());
     if (!a) return c.json<UiResponse>({ showToast: 'AniList returned nothing' }, 200);
-    const name = a.media.title.english ?? a.media.title.romaji;
     const post = await reddit.submitPost({
       subredditName: context.subredditName,
-      title: `${name} - Episode ${a.episode} discussion`,
+      title: `${a.title} - Episode ${a.episode} discussion`,
       text: `Airs ${new Date(a.airingAt * 1000).toUTCString()}. Test post from PretzelFlick.`,
     });
     return c.json<UiResponse>({ showToast: `Posted ${post.id}` }, 200);

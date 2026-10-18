@@ -4,6 +4,7 @@ export const keys = {
   history: 'history',
   posted: (mediaId: number, episode: number) => `posted:${mediaId}:${episode}`,
   season: (mediaId: number, season: number) => `series:${mediaId}:season:${season}:episodes`,
-  schedule: (mediaId: number, episode: number) => `schedule:${mediaId}:${episode}`,
+  schedule: 'schedule',
+  scheduleField: (mediaId: number, episode: number) => `${mediaId}:${episode}`,
   rating: (mediaId: number, episode: number) => `rating:${mediaId}:${episode}`,
 };

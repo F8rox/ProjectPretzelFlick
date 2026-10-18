@@ -4,7 +4,7 @@ This tracker records verified evidence only. Statuses are not copied from earlie
 
 ## Current Phase
 
-Phase 1: Anime core. Unit 01 is done pending one live check. Unit 02 is done pending one live check. Units 03 to 07 are not started.
+Phase 1: Anime core. Unit 01 is done pending one live check. Units 02 and 03 are done pending live checks. Units 04 to 07 are not started.
 
 ## Current Goal
 
@@ -15,10 +15,13 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - [x] Devvit React starter exists at the repo root and `npm run test:types`, `npx eslint "src/**/*.{ts,tsx}"`, `npm run test:unit` (3 tests), and `npm run build` pass. Evidence: run in the build session.
 - [x] `src/server/core/episodes.ts` holds the window function (`windowFor`) and a `postEpisode` that edits every in-window earlier thread. This is the OLD design. Unit 05 replaces the edit loop with one edit to the previous thread. The window function is kept.
 - [x] Week-1 test: the mod menu item "PretzelFlick: test airing post" posted "Test Show - Episode 3 discussion" on `r/pretzelflick_dev2` as the app account. Evidence: user's screenshot of the sub. It used the fixture (`USE_FIXTURE = true` in `src/server/core/anilist.ts`).
-- [ ] Scheduler task `airing-check` (cron every 10 minutes): registered in `devvit.json`. Log line `airing-check ok` NOT yet confirmed.
+- [x] The week-1 `airing-check` task was removed in Unit 03. Its log line was never confirmed. The daily `daily-sync` task replaces it.
 - [ ] AniList fetch from inside Devvit: blocked. Developer Settings shows `graphql.anilist.co` as Pending under Domain exceptions. Without approval the app got "HTTP request to domain: graphql.anilist.co is not allowed".
 - [x] Unit 01 cleanup, 2026-10-18: removed the counter API, example form, install trigger post, `src/client`, `src/shared`, `public`, and their tsconfig and ESLint entries. Added `core/config.ts` and `core/keys.ts` with `keys.test.ts`. Evidence: `npm run test:types`, `npx eslint "src/**/*.{ts,tsx}"`, `npm run test:unit` (4 pass), `npm run build` all pass. `devvit.json` lists only `/internal/menu/test-airing-post` and `/internal/scheduler/airing-check`, and both routes exist. `git ls-files` shows no tracked `.env`. `windowFor` now reads its sizes from `config.ts`.
 - [x] Unit 02, 2026-10-18: `core/tracked.ts` (add, remove, list with validation), `core/settings.ts` (get, save with 0-60 range), routes in `routes/menu.ts` and `routes/forms.ts`, forms and mod-only menu items registered in `devvit.json`. Evidence: `core/tracked.test.ts` (4 tests: invalid ids, duplicate, list and remove, settings range), `npm run test:types`, ESLint, `npm run test:unit` (8 pass), `npm run build` pass. Menu items verified mod-only by reading `devvit.json`.
+- [x] Unit 03, 2026-10-18: `core/anilist.ts` (one batched query, response validation, timeout, one retry, `USE_FIXTURE`), `core/schedule.ts` (`reconcile`), `routes/sync.ts`, daily cron task `daily-sync`, one-off task `post-episode`, mod menu "check now", and a sync after tracked-show changes. Evidence: 16 unit tests pass, covering one job per episode, idempotent rerun, moved air time, cancelled show and removed episode, malformed or failed fetch changing nothing, catch-up queue inside and outside the lateness limit, posted episodes skipped, and the post-delay setting. `npm run test:types`, ESLint, `npm run build` pass, and `devvit.json` endpoints and cron match the Devvit config schema.
+- [ ] Unit 03 live fetch from Devvit. Blocked on input: AniList domain approval, then set `USE_FIXTURE = false`.
+- [ ] Unit 03 live check: "check now" on `r/pretzelflick_dev2` shows a sync summary and `post-episode fired` appears in the playtest log at the scheduled time. Blocked on input.
 - [ ] Unit 02 live check: both forms open and save on `r/pretzelflick_dev2`, and the removal list shows the added ID. Blocked on input.
 - [!] `core/episodes.ts` uses `hExists`, which Devvit's Redis does not have. Unit 04 and 05 must switch it to `hGet` or `hSetNX` before any live run.
 - [ ] Unit 01 live check: the remaining menu item still appears after `npm run dev` on `r/pretzelflick_dev2`. Blocked on input.
@@ -30,7 +33,7 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 | ---- | --------------------------------- | ---------------------------------------- |
 | 01   | Foundation cleanup                | Done pending input (live menu check)     |
 | 02   | Tracked shows and settings        | Done pending input (live form check)     |
-| 03   | AniList client and scheduling     | Not started                              |
+| 03   | AniList client and scheduling     | Done pending input (domain approval, live check) |
 | 04   | Thread posting and dedup          | Not started                              |
 | 05   | Episode links and next edit       | Not started                              |
 | 06   | History and failure handling      | Not started                              |
@@ -43,15 +46,14 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 | Input                                   | Where                                         | Unblocks                                  |
 | --------------------------------------- | --------------------------------------------- | ----------------------------------------- |
 | AniList domain approval                 | developers.reddit.com app, Developer Settings | Unit 03 live fetch, Unit 04 real data     |
-| Confirm `airing-check` log line         | Playtest terminal output                      | Unit 01 scheduler criterion               |
-| Run `npm run dev`, confirm the menu items and both forms | `r/pretzelflick_dev2`               | Unit 01 and 02 live checks                |
+| Run `npm run dev`, confirm the menu items, both forms, "check now", and the `post-episode fired` log | `r/pretzelflick_dev2` | Unit 01, 02 and 03 live checks |
 | Fetch Domains README section reviewed   | `README.md`                                   | Unit 07 review submission                 |
 | A real subreddit to install on          | Mods of 2-3 anime subs                        | Success criterion 9                       |
 
 ## Open Questions
 
 1. Does a Devvit custom post keep normal comments, identify the viewer, and accept a text fallback? (Phase 2 spike, Unit 08.)
-2. How many scheduler jobs per installation does Devvit allow? (Check before Unit 03 finalizes the one-job-per-air-time design.)
+2. How many scheduler jobs per installation does Devvit allow? Unit 03 schedules one per episode inside a 48-hour horizon, so a large tracked list could hit a limit. Check in the playtest.
 3. What is the maximum run time of a scheduler job and of a menu action?
 4. Does Reddit's app review accept an app that posts automatically? (Find out by submitting early in Unit 07.)
 5. Is a text search by title needed for adding shows, or are AniList IDs enough for Phase 1?
@@ -68,6 +70,7 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - D8. Redis history is a sorted set of JSON entries, newest 200 kept. The tracked set holds plain AniList media IDs.
 - D10. `react`, `react-dom`, Tailwind and their Vite plugins stay installed although Phase 1 has no client. Unit 09 (Phase 2) needs them. Revisit if Phase 2 is dropped.
 - D11. `tools/tsconfig.server.json` sets `rewriteRelativeImportExtensions` so source files can import `./x.ts`, which `node --test` requires, while `tsc --build` still passes.
+- D13. The `schedule` key is a hash (`{mediaId}:{episode}` to `{jobId, runAt}`) because Devvit Redis cannot scan string keys to cancel jobs for removed shows. Catch-up posts run `catchUpDelayMs` after the sync.
 - D12. `tracked` is a Redis hash, not a set, because Devvit Redis has no set commands (Unit 02). Dedup in Unit 04 uses `hSetNX`.
 - D9. Config booleans stay separate fields in the `config` hash (`autoPostEnabled`), not a JSON blob.
 - Source: two council runs in the build session (project review, then the X-factor question). All claims about Devvit limits there were unverified.

@@ -7,6 +7,12 @@ export const config = {
   linkWindowSize: 50,
   /** An aired episode with no post is still posted if it aired within this many hours. */
   latenessLimitHours: 24,
+  /** Catch-up posts for missed episodes run this many ms after the sync. */
+  catchUpDelayMs: 60_000,
+  /** AniList request timeout. */
+  anilistTimeoutMs: 10_000,
+  /** Episodes airing within this many hours get a scheduled job. */
+  scheduleHorizonHours: 48,
   /** Newest history entries kept. */
   historyLength: 200,
   /** Hard cap on threads posted by one sync run. */

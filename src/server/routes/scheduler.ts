@@ -1,11 +1,19 @@
 import { Hono } from 'hono';
-import { nextAiring } from '../core/anilist';
+import { describeSync, runSync } from './sync';
 
 export const scheduler = new Hono();
 
-// MOCK: week-1 test task that proves cron fires and AniList is reachable. Replaced by the daily sync in Unit 03.
-scheduler.post('/airing-check', async (c) => {
-  const [first] = await nextAiring();
-  console.log(`airing-check ok, next: ${first?.media.title.romaji} ep ${first?.episode}`);
+scheduler.post('/daily-sync', async (c) => {
+  try {
+    console.log(describeSync(await runSync()));
+  } catch (error) {
+    console.error(`daily-sync failed: ${error}`); // Unit 06 moves this into the history
+  }
+  return c.json({}, 200);
+});
+
+// MOCK: Unit 04 replaces this with the real posting job. Until then a fired job only logs.
+scheduler.post('/post-episode', async (c) => {
+  console.log(`post-episode fired: ${JSON.stringify(await c.req.json().catch(() => ({})))}`);
   return c.json({}, 200);
 });

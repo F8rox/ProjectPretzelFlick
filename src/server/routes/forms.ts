@@ -3,6 +3,7 @@ import type { UiResponse } from '@devvit/web/shared';
 import { redis } from '@devvit/web/server';
 import { addShow, removeShows, type Result } from '../core/tracked';
 import { saveSettings } from '../core/settings';
+import { runSync } from './sync';
 
 export const forms = new Hono();
 
@@ -21,6 +22,14 @@ forms.post('/tracked-submit', async (c) => {
   const results: Result[] = [];
   if (typeof add === 'string' && add.trim()) results.push(await addShow(redis, add));
   if (Array.isArray(remove) && remove.length) results.push(await removeShows(redis, remove));
+  if (results.some((r) => r.ok)) {
+    try {
+      await runSync();
+    } catch (error) {
+      console.error(`sync after tracked change failed: ${error}`);
+      results.push({ ok: false, message: 'Saved, but the sync failed. It will retry daily.' });
+    }
+  }
   return c.json<UiResponse>(toast(results), 200);
 });
 

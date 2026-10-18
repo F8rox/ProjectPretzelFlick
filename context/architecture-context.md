@@ -33,7 +33,7 @@ All keys live inside one subreddit's isolated install. Devvit scopes Redis per i
 | `tracked`                              | Hash       | field = AniList media ID, value = time added (ms)                      | Shows this install tracks                    |
 | `posted:{mediaId}:{episode}`           | Hash       | `state` (pending or posted), `postId`, `permalink`, `at`               | Two-phase dedup, episode to thread lookup    |
 | `series:{mediaId}:season:{s}:episodes` | Hash       | field = episode, value = `{postId, permalink, postedAt, status}`       | Earlier-episode table, 50-link window        |
-| `schedule:{mediaId}:{episode}`         | String     | scheduler job id                                                       | Cancel and recreate when an air time moves   |
+| `schedule`                             | Hash       | field = `{mediaId}:{episode}`, value = JSON `{jobId, runAt}`           | Cancel and recreate when an air time moves   |
 | `history`                              | Sorted set | score = timestamp, member = JSON `{type, mediaId, episode, reason}`    | Mod-visible activity, newest 200 kept        |
 | `rating:{mediaId}:{episode}` (Phase 2) | Hash       | field = userId, value = score 1 to 5                                   | One vote per user, re-votes overwrite        |
 
