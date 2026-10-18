@@ -4,7 +4,7 @@ This tracker records verified evidence only. Statuses are not copied from earlie
 
 ## Current Phase
 
-Phase 1: Anime core. Unit 01 is partly done (starter project plus a week-1 test app). Units 02 to 07 are not started.
+Phase 1: Anime core. Unit 01 is done pending one live check. Units 02 to 07 are not started.
 
 ## Current Goal
 
@@ -17,13 +17,15 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - [x] Week-1 test: the mod menu item "PretzelFlick: test airing post" posted "Test Show - Episode 3 discussion" on `r/pretzelflick_dev2` as the app account. Evidence: user's screenshot of the sub. It used the fixture (`USE_FIXTURE = true` in `src/server/core/anilist.ts`).
 - [ ] Scheduler task `airing-check` (cron every 10 minutes): registered in `devvit.json`. Log line `airing-check ok` NOT yet confirmed.
 - [ ] AniList fetch from inside Devvit: blocked. Developer Settings shows `graphql.anilist.co` as Pending under Domain exceptions. Without approval the app got "HTTP request to domain: graphql.anilist.co is not allowed".
+- [x] Unit 01 cleanup, 2026-10-18: removed the counter API, example form, install trigger post, `src/client`, `src/shared`, `public`, and their tsconfig and ESLint entries. Added `core/config.ts` and `core/keys.ts` with `keys.test.ts`. Evidence: `npm run test:types`, `npx eslint "src/**/*.{ts,tsx}"`, `npm run test:unit` (4 pass), `npm run build` all pass. `devvit.json` lists only `/internal/menu/test-airing-post` and `/internal/scheduler/airing-check`, and both routes exist. `git ls-files` shows no tracked `.env`. `windowFor` now reads its sizes from `config.ts`.
+- [ ] Unit 01 live check: the remaining menu item still appears after `npm run dev` on `r/pretzelflick_dev2`. Blocked on input.
 - [ ] `README.md` has a "Fetch Domains" section (added). It still carries the starter's text and needs a rewrite in Unit 07.
 
 ## Units
 
 | Unit | Name                              | Status                                   |
 | ---- | --------------------------------- | ---------------------------------------- |
-| 01   | Foundation cleanup                | Partly done (see Verified State)         |
+| 01   | Foundation cleanup                | Done pending input (live menu check)     |
 | 02   | Tracked shows and settings        | Not started                              |
 | 03   | AniList client and scheduling     | Not started                              |
 | 04   | Thread posting and dedup          | Not started                              |
@@ -39,6 +41,7 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 | --------------------------------------- | --------------------------------------------- | ----------------------------------------- |
 | AniList domain approval                 | developers.reddit.com app, Developer Settings | Unit 03 live fetch, Unit 04 real data     |
 | Confirm `airing-check` log line         | Playtest terminal output                      | Unit 01 scheduler criterion               |
+| Run `npm run dev`, confirm the menu item| `r/pretzelflick_dev2`                         | Unit 01 live check                        |
 | Fetch Domains README section reviewed   | `README.md`                                   | Unit 07 review submission                 |
 | A real subreddit to install on          | Mods of 2-3 anime subs                        | Success criterion 9                       |
 
@@ -60,6 +63,8 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - D6. Discussion threads stay plain text posts. Interactive ratings live in a separate Season Hub (Phase 2).
 - D7. `USE_FIXTURE` in `src/server/core/anilist.ts` stands in for AniList until the domain is approved. It must be `false` before release.
 - D8. Redis history is a sorted set of JSON entries, newest 200 kept. The tracked set holds plain AniList media IDs.
+- D10. `react`, `react-dom`, Tailwind and their Vite plugins stay installed although Phase 1 has no client. Unit 09 (Phase 2) needs them. Revisit if Phase 2 is dropped.
+- D11. `tools/tsconfig.server.json` sets `rewriteRelativeImportExtensions` so source files can import `./x.ts`, which `node --test` requires, while `tsc --build` still passes.
 - D9. Config booleans stay separate fields in the `config` hash (`autoPostEnabled`), not a JSON blob.
 - Source: two council runs in the build session (project review, then the X-factor question). All claims about Devvit limits there were unverified.
 

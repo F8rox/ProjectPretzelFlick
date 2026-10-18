@@ -6,13 +6,9 @@
     "customConditions": [],
     "types": ["node"],
     "exactOptionalPropertyTypes": false,
+    "rewriteRelativeImportExtensions": true,
     "rootDir": "../src/server"
   },
   "include": ["../src/server/**/*"],
-  "exclude": ["../src/**/*.test.ts"],
-  "references": [
-    {
-      "path": "./tsconfig.shared.json"
-    }
-  ]
+  "exclude": ["../src/**/*.test.ts"]
 }

@@ -1,3 +1,5 @@
+import { config } from './config.ts';
+
 export type EpisodeStatus = 'active' | 'frozen' | 'locked';
 
 export type EpisodeEntry = {
@@ -24,8 +26,9 @@ export const seasonKey = (seriesId: string, season: number) =>
 
 /** Inclusive episode range a thread links to: 1-50, then slides by 25 (25-75, 50-100, ...). */
 export const windowFor = (ep: number) => {
-  const start = Math.max(1, 25 * Math.floor(ep / 25) - 25);
-  return { start, end: start === 1 ? 50 : start + 50 };
+  const step = config.linkWindowSize / 2;
+  const start = Math.max(1, step * Math.floor(ep / step) - step);
+  return { start, end: start === 1 ? config.linkWindowSize : start + config.linkWindowSize };
 };
 
 const parse = (raw: Record<string, string>) =>
