@@ -1,12 +1,9 @@
 import { config } from './config.ts';
 import { keys } from './keys.ts';
 import type { Airing } from './anilist.ts';
+import { POST_JOB, toJobData, type PostJobData } from './post.ts';
 import { listShows, type TrackedStore } from './tracked.ts';
 import { getSettings, type SettingsStore } from './settings.ts';
-
-export const POST_JOB = 'post-episode';
-
-export type PostJobData = { mediaId: number; episode: number };
 
 export type JobScheduler = {
   runJob(job: { name: string; data: PostJobData; runAt: Date }): Promise<string>;
@@ -85,7 +82,7 @@ export const reconcile = async ({ store, scheduler, fetchAiring, nowMs }: SyncDe
   }
 
   const schedule = async (field: string, airing: Airing, runAt: number) => {
-    const jobId = await scheduler.runJob({ name: POST_JOB, data: { mediaId: airing.mediaId, episode: airing.episode }, runAt: new Date(runAt) });
+    const jobId = await scheduler.runJob({ name: POST_JOB, data: toJobData(airing), runAt: new Date(runAt) });
     await store.hSet(keys.schedule, { [field]: JSON.stringify({ jobId, runAt }) });
   };
 

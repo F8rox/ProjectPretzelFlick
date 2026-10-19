@@ -9,6 +9,8 @@ export const config = {
   latenessLimitHours: 24,
   /** Catch-up posts for missed episodes run this many ms after the sync. */
   catchUpDelayMs: 60_000,
+  /** Recent subreddit posts searched when recovering from a crash between submit and record. */
+  recoveryScanLimit: 50,
   /** AniList request timeout. */
   anilistTimeoutMs: 10_000,
   /** Episodes airing within this many hours get a scheduled job. */

@@ -1,6 +1,8 @@
 import { config } from './config.ts';
 
-export type Airing = { mediaId: number; episode: number; airingAt: number; title: string };
+export type Stream = { site: string; url: string };
+
+export type Airing = { mediaId: number; episode: number; airingAt: number; title: string; streams: Stream[] };
 
 const QUERY = `query ($ids: [Int], $from: Int, $to: Int) {
   Page(perPage: 50) {
@@ -8,7 +10,7 @@ const QUERY = `query ($ids: [Int], $from: Int, $to: Int) {
       airingAt
       episode
       mediaId
-      media { title { romaji english } }
+      media { title { romaji english } externalLinks { site url type } }
     }
   }
 }`;
@@ -16,6 +18,14 @@ const QUERY = `query ($ids: [Int], $from: Int, $to: Int) {
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
 const bad = () => new Error('AniList response has an unexpected shape');
+
+// Only official streaming links over https are kept. Anything else is dropped, never guessed.
+const parseStreams = (links: unknown): Stream[] =>
+  (Array.isArray(links) ? links : []).flatMap((l: unknown): Stream[] =>
+    isRecord(l) && l.type === 'STREAMING' && typeof l.site === 'string' && typeof l.url === 'string' && l.url.startsWith('https://')
+      ? [{ site: l.site, url: l.url }]
+      : [],
+  );
 
 /** Validates the raw GraphQL response. Any mismatch throws, so a run never acts on guessed data. */
 export const parseAiring = (json: unknown): Airing[] => {
@@ -28,7 +38,8 @@ export const parseAiring = (json: unknown): Airing[] => {
     if (!isRecord(item) || typeof name !== 'string') throw bad();
     const { mediaId, episode, airingAt } = item;
     if (!Number.isInteger(mediaId) || !Number.isInteger(episode) || !Number.isInteger(airingAt)) throw bad();
-    return { mediaId: Number(mediaId), episode: Number(episode), airingAt: Number(airingAt), title: name };
+    const streams = parseStreams(isRecord(item.media) ? item.media.externalLinks : undefined);
+    return { mediaId: Number(mediaId), episode: Number(episode), airingAt: Number(airingAt), title: name, streams };
   });
 };
 
@@ -41,6 +52,7 @@ export const fixtureAiring = (ids: number[], nowMs: number): Airing[] =>
     episode: 3,
     airingAt: Math.floor(nowMs / 1000) + 3600 * (i + 1),
     title: `Test Show ${mediaId}`,
+    streams: [{ site: 'Example Stream', url: 'https://example.com/watch' }],
   }));
 
 const post = async (body: string): Promise<unknown> => {

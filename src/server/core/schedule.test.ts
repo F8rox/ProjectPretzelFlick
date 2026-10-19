@@ -10,6 +10,7 @@ const air = (mediaId: number, episode: number, offsetHours: number): Airing => (
   episode,
   airingAt: Math.floor((NOW + offsetHours * HOUR) / 1000),
   title: `Show ${mediaId}`,
+  streams: [],
 });
 
 const setup = (airings: Airing[] | Error, tracked: number[] = [1]) => {
@@ -83,4 +84,10 @@ test('the post delay setting shifts the run time', async () => {
   t.h('config').set('postDelayMinutes', '10');
   await t.run();
   assert.deepEqual([...t.jobs.values()].map((d) => d.getTime()), [NOW + 2 * HOUR + 10 * 60_000]);
+});
+
+test('the posts-per-run cap limits catch-up posts', async () => {
+  const late = Array.from({ length: 12 }, (_, i) => air(1, i + 1, -2));
+  const t = setup(late);
+  assert.equal((await t.run()).queued, 10);
 });

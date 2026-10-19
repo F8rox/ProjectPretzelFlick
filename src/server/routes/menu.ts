@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
 import { fetchAiring } from '../core/anilist';
+import { findNextUnposted, postEpisode, toJobData } from '../core/post';
 import { describeSync, runSync } from './sync';
-import { context, reddit, redis } from '@devvit/web/server';
+import { poster } from './poster';
+import { redis } from '@devvit/web/server';
 import { listShows } from '../core/tracked';
 import { getSettings } from '../core/settings';
 import { config } from '../core/config';
@@ -55,20 +57,16 @@ menu.post('/settings-open', async (c) => {
   });
 });
 
-// MOCK: week-1 test action that posts one thread for the next airing episode. Replaced by "Post next episode now" in Unit 04.
-menu.post('/test-airing-post', async (c) => {
+menu.post('/post-next', async (c) => {
   try {
-    const [a] = await fetchAiring([1], Date.now());
-    if (!a) return c.json<UiResponse>({ showToast: 'AniList returned nothing' }, 200);
-    const post = await reddit.submitPost({
-      subredditName: context.subredditName,
-      title: `${a.title} - Episode ${a.episode} discussion`,
-      text: `Airs ${new Date(a.airingAt * 1000).toUTCString()}. Test post from PretzelFlick.`,
-    });
-    return c.json<UiResponse>({ showToast: `Posted ${post.id}` }, 200);
+    const nowMs = Date.now();
+    const airing = await findNextUnposted(redis, await fetchAiring(await listShows(redis), nowMs));
+    if (!airing) return c.json<UiResponse>({ showToast: 'Nothing to post: every tracked episode in range already has a thread.' }, 200);
+    const outcome = await postEpisode({ store: redis, poster, nowMs }, toJobData(airing));
+    return c.json<UiResponse>({ showToast: `${airing.title} episode ${airing.episode}: ${outcome}` }, 200);
   } catch (error) {
-    console.error(`test-airing-post failed: ${error}`);
+    console.error(`post-next failed: ${error}`);
     // 200 so Reddit shows our message instead of its generic "Something went wrong".
-    return c.json<UiResponse>({ showToast: String(error).replace(/^.*?(HTTP request)/s, '$1').slice(0, 200) }, 200);
+    return c.json<UiResponse>({ showToast: `Post failed: ${error}`.slice(0, 200) }, 200);
   }
 });

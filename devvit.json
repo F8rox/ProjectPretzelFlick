@@ -29,11 +29,11 @@
         "endpoint": "/internal/menu/sync-now"
       },
       {
-        "label": "PretzelFlick: test airing post",
-        "description": "Posts one test thread from AniList",
+        "label": "PretzelFlick: post next episode now",
+        "description": "Post the next tracked episode without waiting for its job",
         "location": "subreddit",
         "forUserType": "moderator",
-        "endpoint": "/internal/menu/test-airing-post"
+        "endpoint": "/internal/menu/post-next"
       }
     ]
   },
