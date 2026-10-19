@@ -37,9 +37,9 @@ Instructions for any AI coding agent working on PretzelFlick. You are writing a 
 
 ## Commands
 
-- `npm run test:types`, `npx eslint "src/**/*.{ts,tsx}"`, `npm run test:unit`, `npm run build`
+- `npm run test:types` (app and tests), `npm run lint`, `npm run test:unit`, `npm run build`
 - `npm run dev` runs a live playtest on `r/pretzelflick_dev2`.
-- `npx devvit upload` uploads a private version (the `deploy` script's lint step uses a quoted glob that breaks on Windows).
+- `npx devvit upload` uploads a private version.
 
 ## Code Style
 

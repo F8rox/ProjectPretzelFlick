@@ -31,12 +31,25 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - [ ] Unit 03 live check: "check now" on `r/pretzelflick_dev2` shows a sync summary and `post-episode fired` appears in the playtest log at the scheduled time. Blocked on input.
 - [ ] Unit 02 live check: both forms open and save on `r/pretzelflick_dev2`, and the removal list shows the added ID. Blocked on input.
 - [ ] Unit 01 live check: the remaining menu item still appears after `npm run dev` on `r/pretzelflick_dev2`. Blocked on input.
-- [ ] `README.md` has a "Fetch Domains" section (added). It still carries the starter's text and needs a rewrite in Unit 07.
+- [x] `README.md` has a "Fetch Domains" section (added). It still carries the starter's text and needs a rewrite in Unit 07.
 
 ## Audit Fixes (2026-10-19)
 
 - [x] Audit finding 1 (High): the fixture could have posted fake "Test Show" threads on any subreddit. `fetchAiring` now takes an explicit `fixture` flag that defaults to false, and `shouldUseFixture(subredditName)` is true only when `config.fixtureOnDevSubreddit` is on AND the install is `config.devSubreddit` (`pretzelflick_dev2`). `routes/sync.ts` is the single place that decides, used by the sync and "post next episode now". Evidence: `anilist.test.ts` (dev sub on, other subs and empty name off, flag off, fixture only when asked, `config.devSubreddit` equals `dev.subreddit` in `devvit.json`); 42 unit tests, type-check, ESLint, build pass. Unit 07 still sets `config.fixtureOnDevSubreddit` to `false`.
-- [ ] Audit findings 2 to 14: open.
+- [x] Finding 2 (Medium): "post next episode now" only offers episodes that have aired (`findNextUnposted` takes `nowMs`). Test covers a not-yet-aired episode.
+- [x] Finding 3 (Medium): tests are now type-checked and linted (`tools/tsconfig.test.json`, `test:types` runs both, ESLint has a test block). Doing so found a stale `Poster` import in `post.test.ts`, now fixed. `no-floating-promises` is off for test files only because `node:test` runs the promises `test()` returns.
+- [x] Finding 4 (Medium): `reconcile` split into `makePlan`, `prune`, `scheduleWanted`, `queueLate`. All functions are under 40 lines. Existing schedule tests unchanged and green.
+- [x] Finding 5 (Medium): stream and job-payload links go through `safeHttpsUrl` (`core/parse.ts`): https only, normalized by `URL`, parentheses encoded. `parse.test.ts` covers markdown-breaking input.
+- [x] Finding 6 (Medium): `.github/workflows/ci.yaml` rewritten as plain steps (the starter's `parallel:` key is not valid) using `npm ci`. Not run on GitHub, so the workflow itself is unverified.
+- [~] Finding 7 (Medium): `devvit` and `@devvit/start` moved to `devDependencies` (440 packages now flagged dev-only in the lockfile). `hono` bumped to 4.13.13, which fixes its advisory. `npm audit --omit=dev` went from 20 to 19 findings (18 moderate, 1 high: `brace-expansion` and `protobufjs`, both through `@devvit/web`). Full audit is 44 (13 high, all in the Devvit CLI chain). Both need `@devvit/web` and `devvit` 0.14.2 to 0.14.8, a non-breaking bump that was NOT applied because it is a platform upgrade that cannot be tested without the live app. Do it after the live checks.
+- [x] Finding 8 (Low): `core/parse.ts` (`isRecord`, `parseJsonRecord`, `safeHttpsUrl`) replaces four copies of the JSON-record parsing.
+- [x] Finding 9 (Low): `HOUR_MS` and `MINUTE_MS` in `config.ts` replace repeated time literals, and `formatUtc` replaces a duplicated date format.
+- [x] Finding 10 (Low): the unused `keys.rating` and `config.minVotesForAverage` were removed. Unit 09 adds them back.
+- [x] Finding 11 (Low): `README.md` rewritten for moderators and developers. It states the app is unpublished and the domain request is pending.
+- [x] Finding 12 (Low): the `as const` in `menu.ts` is gone (the form fields are typed with `Form['fields']`).
+- [~] Finding 13 (Low): the `lint` script uses a Windows-safe quoted glob and `AGENTS.md` and the README use it. `engines` still says Node 24 and the starter's `AGENTS.md` said Node 22. The Devvit runtime version is unverified.
+- [x] Finding 14 (Low): mod-facing toasts no longer show raw error text. They say "Open recent activity for details", and the detail goes to the history.
+- Evidence for the group: 44 unit tests, `npm run test:types` (app and tests), `npm run lint`, `npm run build` all pass.
 
 ## Units
 

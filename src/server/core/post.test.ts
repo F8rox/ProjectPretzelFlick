@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { findNextUnposted, parseJobData, postEpisode, runPostJob, renderBody, renderTitle, type PostJobData, type PostStore, type Poster } from './post.ts';
+import { findNextUnposted, parseJobData, postEpisode, runPostJob, renderBody, renderTitle, type PostJobData, type PostStore } from './post.ts';
+import type { Poster } from './types.ts';
 import type { Airing } from './anilist.ts';
 import type { HistoryEntry } from './history.ts';
 
