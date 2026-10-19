@@ -31,7 +31,7 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - [ ] Unit 03 live check: "check now" on `r/pretzelflick_dev2` shows a sync summary and `post-episode fired` appears in the playtest log at the scheduled time. Blocked on input.
 - [ ] Unit 02 live check: both forms open and save on `r/pretzelflick_dev2`, and the removal list shows the added ID. Blocked on input.
 - [ ] Unit 01 live check: the remaining menu item still appears after `npm run dev` on `r/pretzelflick_dev2`. Blocked on input.
-- [x] `README.md` has a "Fetch Domains" section (added). It still carries the starter's text and needs a rewrite in Unit 07.
+- [x] `README.md` was rewritten (audit finding 11) and has a "Fetch Domains" section. Unit 07 only needs to re-check it is accurate at release.
 
 ## Audit Fixes (2026-10-19)
 
