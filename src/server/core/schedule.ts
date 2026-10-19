@@ -30,7 +30,7 @@ export type SyncSummary = { scheduled: number; moved: number; cancelled: number;
 
 type Entry = { jobId: string; runAt: number };
 type Wanted = { airing: Airing; runAt: number };
-type Plan = { tracked: number[]; existing: Map<string, Entry>; wanted: Map<string, Wanted>; late: Airing[]; horizonMs: number };
+type Plan = { tracked: number[]; existing: Map<string, Entry>; wanted: Map<string, Wanted>; late: Airing[]; horizonMs: number; expected: Set<string> };
 
 const parseEntry = (value: string): Entry | undefined => {
   const p = parseJsonRecord(value);
@@ -60,11 +60,13 @@ const makePlan = async ({ store, fetchAiring, nowMs }: SyncDeps): Promise<Plan> 
     if (runAt > nowMs && airMs <= horizonMs) wanted.set(keys.scheduleField(airing.mediaId, airing.episode), { airing, runAt });
     else if (runAt <= nowMs && airMs >= lateFromMs) late.push(airing);
   }
-  return { tracked, existing, wanted, late, horizonMs };
+  // A queued catch-up job belongs to a late episode, so it is expected too and must not be mistaken for a dropped one.
+  const expected = new Set([...wanted.keys(), ...late.map((a) => keys.scheduleField(a.mediaId, a.episode))]);
+  return { tracked, existing, wanted, late, horizonMs, expected };
 };
 
 /** Removes jobs that already fired, and cancels jobs for untracked shows or episodes AniList dropped. */
-const prune = async ({ store, scheduler, nowMs, record }: SyncDeps, { tracked, existing, wanted, horizonMs }: Plan): Promise<number> => {
+const prune = async ({ store, scheduler, nowMs, record }: SyncDeps, { tracked, existing, expected, horizonMs }: Plan): Promise<number> => {
   let cancelled = 0;
   for (const [field, entry] of existing) {
     if (entry.runAt <= nowMs) {
@@ -73,7 +75,7 @@ const prune = async ({ store, scheduler, nowMs, record }: SyncDeps, { tracked, e
     }
     const [mediaId, episode] = field.split(':').map(Number);
     const isTracked = mediaId !== undefined && tracked.includes(mediaId);
-    if (isTracked && (wanted.has(field) || entry.runAt > horizonMs)) continue;
+    if (isTracked && (expected.has(field) || entry.runAt > horizonMs)) continue;
     await scheduler.cancelJob(entry.jobId);
     await store.hDel(keys.schedule, [field]);
     cancelled++;
@@ -109,15 +111,17 @@ const scheduleWanted = async (deps: SyncDeps, { existing, wanted }: Plan) => {
 };
 
 /** Aired within the lateness limit and not yet posted: queue now. Dedup at post time keeps repeats safe. */
-const queueLate = async (deps: SyncDeps, { late }: Plan): Promise<number> => {
+const queueLate = async (deps: SyncDeps, { late, existing }: Plan): Promise<number> => {
   const { store, nowMs, record } = deps;
   for (const airing of late.slice(config.maxPostsPerRun)) {
     await record({ type: 'skipped', mediaId: airing.mediaId, episode: airing.episode, reason: 'over the per-run posting cap', at: nowMs });
   }
   let queued = 0;
   for (const airing of late.slice(0, config.maxPostsPerRun)) {
+    const field = keys.scheduleField(airing.mediaId, airing.episode);
     if (await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) continue;
-    await startJob(deps, keys.scheduleField(airing.mediaId, airing.episode), airing, nowMs + config.catchUpDelayMs);
+    if ((existing.get(field)?.runAt ?? 0) > nowMs) continue; // already queued by an earlier sync
+    await startJob(deps, field, airing, nowMs + config.catchUpDelayMs);
     queued++;
   }
   return queued;

@@ -81,6 +81,16 @@ test('an aired episode inside the lateness limit is queued, outside it is skippe
   assert.equal(t.jobs.size, 1);
 });
 
+test('a repeat sync neither cancels nor re-queues a pending catch-up job', async () => {
+  const t = setup([air(1, 4, -2), air(1, 5, -1)]);
+  assert.equal((await t.run()).queued, 2);
+  const [first] = [...t.jobs.keys()];
+  assert.deepEqual(await t.run(NOW + 10_000), { scheduled: 0, moved: 0, cancelled: 0, queued: 0 });
+  assert.equal(t.jobs.size, 2);
+  assert.equal(t.jobs.has(first ?? ''), true);
+  assert.deepEqual(t.records, []);
+});
+
 test('the post delay setting shifts the run time', async () => {
   const t = setup([air(1, 5, 2)]);
   t.h('config').set('postDelayMinutes', '10');
