@@ -45,7 +45,7 @@ export const parseAiring = (json: unknown): Airing[] => {
 export const shouldUseFixture = (subredditName: string) =>
   config.fixtureOnDevSubreddit && subredditName.toLowerCase() === config.devSubreddit;
 
-export const fixtureAiring = (ids: number[], nowMs: number): Airing[] =>
+const fixtureAiring = (ids: number[], nowMs: number): Airing[] =>
   ids.map((mediaId, i) => ({
     mediaId,
     episode: 3,

@@ -4,7 +4,7 @@ This tracker records verified evidence only. Statuses are not copied from earlie
 
 ## Current Phase
 
-Phase 1: Anime core. Unit 01 is done pending one live check. Units 02 to 06 are done pending live checks. Unit 07 (hardening and release) is not started.
+Phase 1: Anime core. Unit 01 is done pending one live check. Units 02 to 06 are done pending live checks. Unit 07's code and checks are done. Upload, review, domain approval, and installing on a real subreddit need you.
 
 ## Current Goal
 
@@ -32,6 +32,50 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - [ ] Unit 02 live check: both forms open and save on `r/pretzelflick_dev2`, and the removal list shows the added ID. Blocked on input.
 - [ ] Unit 01 live check: the remaining menu item still appears after `npm run dev` on `r/pretzelflick_dev2`. Blocked on input.
 - [x] `README.md` was rewritten (audit finding 11) and has a "Fetch Domains" section. Unit 07 only needs to re-check it is accurate at release.
+
+## Unit 07: Hardening And Release (2026-10-19)
+
+Security checklist, every item run against the final code:
+
+| # | Check | Evidence | Result |
+| - | ----- | -------- | ------ |
+| 1 | Every state-changing route is mod-only or has a reason | All 5 menu items are `forUserType: moderator` in `devvit.json`. Forms and scheduler tasks are `/internal/*` platform endpoints and there are no triggers. 10 of 10 routes in `src/server/routes` match `devvit.json`. | Pass |
+| 2 | Every fetch goes to an approved domain | The only `fetch` in `src` is `graphql.anilist.co` in `core/anilist.ts`, and the domain is in `permissions.http.domains`. Approval is Pending in Developer Settings. | Pass in code. Blocked on input (approval) |
+| 3 | External values are validated | `parseAiring`, `parseJobData`, `parseMediaId`, `saveSettings`, `safeHttpsUrl`, and `parseJsonRecord` at every boundary, with negative tests. | Pass |
+| 4 | The code cannot post the same episode twice | `post.test.ts`: double run, crash between submit and record, failed submit then retry. Known shortcut: two jobs racing at the same instant (comment in `post.ts`). | Pass with the noted shortcut |
+| 5 | No secret or user identifier in code, config, or logs | Pattern scan over the working tree and every commit found nothing. gitleaks is not installed, so this is a pattern scan only. `.env` is ignored, empty, and never committed. `console.*` lines log only media IDs and error text. | Pass |
+| 6 | At least one negative test per unit | Invalid IDs and delays (02), malformed AniList data (03), duplicate and too-late (04), failed edit (05), failed history write (06). | Pass |
+| 7 | Nothing from Out Of Scope exists | Search of `src` for TMDB, movies, ratings, React, notifications, certificates, payments found nothing. | Pass |
+
+Other release checks:
+
+- [x] Active `MOCK:` code: only `config.fixtureOnDevSubreddit` (and it can only run on `pretzelflick_dev2`). `npm run release:check` (new, `scripts/release-check.mjs`) fails while the flag is `true` and is now part of `npm run launch`. Verified both ways: it failed on the real config and passed on a copy with the flag `false`.
+- [x] No function over 40 lines, no file over 300 lines, and no file outside the folder layout.
+- [x] `npm audit`: full 44 findings (13 high, all in the Devvit CLI chain, dev-only). Runtime (`--omit=dev`) 19 findings (18 moderate, 1 high), from `brace-expansion` and `protobufjs` through `@devvit/web`. The fix is the non-breaking bump of `@devvit/web` and `devvit` 0.14.2 to 0.14.8, not applied (see finding 7).
+- [x] `README.md` is accurate for the current behavior.
+
+Phase 1 success criteria (`project-overview.md`):
+
+| # | Criterion | Evidence | Result |
+| - | --------- | -------- | ------ |
+| 1 | A mod can install the app and add a tracked show from the form | `tracked.test.ts`; forms registered | Logic passes. Live form check blocked on input |
+| 2 | A tracked episode produces exactly one thread at its air time | One-job-per-episode and dedup tests | Logic passes. Timing live check blocked on input |
+| 3 | A rerun or a crash never produces a second thread | `post.test.ts` | Pass |
+| 4 | A delayed episode moves its job and appears in the history | `schedule.test.ts` | Pass |
+| 5 | Each thread has the 50-link table, and the previous thread gains one "next" link | `post.test.ts`, `episodes.test.ts` | Logic passes. Live check blocked on input |
+| 6 | A failed edit is recorded as locked and does not stop new posts | `post.test.ts` | Pass |
+| 7 | The history shows posted, skipped, and failed items with reasons | `post.test.ts`, `history.test.ts` | Logic passes. Live check blocked on input |
+| 8 | Security checklist passes and the Fetch Domains request is approved | Checklist above | Checklist passes. Approval pending, blocked on input |
+| 9 | Installed and posted real threads on a real subreddit | Not started | Blocked on you |
+
+Needs human (I cannot do these):
+
+1. Run `npm run dev` on `r/pretzelflick_dev2` and walk the live checks listed in the Inputs table.
+2. Wait for the AniList domain approval, then set `config.fixtureOnDevSubreddit` to `false` and re-run "check now" and "post next episode now".
+3. Fill in the app description and listing details in Developer Settings.
+4. Upload with `npx devvit upload`, then publish for review with `npm run launch` (it runs `release:check` first). Submitting for review sends the app to Reddit, so that decision and the click are yours.
+5. Ask a real subreddit's mods for permission, install, and watch a week of episodes.
+6. After the live checks, bump `@devvit/web` and `devvit` to 0.14.8 and re-run everything.
 
 ## Audit Fixes (2026-10-19)
 
@@ -61,7 +105,7 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 | 04   | Thread posting and dedup          | Done pending input (live post check)     |
 | 05   | Episode links and next edit       | Done pending input (live post check)     |
 | 06   | History and failure handling      | Done pending input (live check)          |
-| 07   | Hardening and release             | Not started                              |
+| 07   | Hardening and release             | Code work done. Release steps need you (see Unit 07 below) |
 | 08   | Season Hub spike (Phase 2)        | Not started                              |
 | 09   | Ratings and season chart (Phase 2)| Not started                              |
 
@@ -72,6 +116,8 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 | AniList domain approval                 | developers.reddit.com app, Developer Settings | Unit 03 live fetch, Unit 04 real data     |
 | Run `npm run dev`, confirm the menu items, both forms, "check now", "post next episode now" (twice), post two consecutive episodes, "recent activity", and the `post-episode` log | `r/pretzelflick_dev2` | Unit 01 to 06 live checks |
 | Fetch Domains README section reviewed   | `README.md`                                   | Unit 07 review submission                 |
+| App description and listing details     | Developer Settings                            | Unit 07 review submission                 |
+| Upload and publish for review           | `npx devvit upload`, then `npm run launch`    | Unit 07 review criterion                  |
 | A real subreddit to install on          | Mods of 2-3 anime subs                        | Success criterion 9                       |
 
 ## Open Questions

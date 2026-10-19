@@ -67,6 +67,7 @@ src/
   client/                 Phase 2 web views
   shared/                 types shared by client and server
 context/                  specs (this folder)
+scripts/                  release-check.mjs, run by `npm run launch`
 devvit.json               permissions, menu, forms, triggers, scheduler, settings
 ```
 
