@@ -4,7 +4,7 @@ This tracker records verified evidence only. Statuses are not copied from earlie
 
 ## Current Phase
 
-Phase 1: Anime core. Unit 01 is done pending one live check. Units 02 to 06 are done pending live checks. Unit 07's code and checks are done. Upload, review, domain approval, and installing on a real subreddit need you.
+Phase 1: Anime core. Unit 01 is done pending one live check. Units 01 to 06 passed their live checks on fixture data (2026-10-19). The real AniList fetch is blocked by the domain rejection. Unit 07's code and checks are done. Upload, review, domain approval, and installing on a real subreddit need you.
 
 ## Current Goal
 
@@ -42,7 +42,8 @@ Evidence I saw myself is marked (seen). Evidence the user reported is marked (re
 - [x] Unit 04 scheduled posting: the playtest log showed `post-episode 154587 ep 2: posted` and `post-episode 154587 ep 3: posted` (seen).
 - [x] Unit 06 history: "recent activity" opened and listed `posted show 154587 ep 3` at 2026-10-19 17:40 UTC (seen, screenshot). The visible box is small, so further lines may need scrolling (not checked).
 - [x] Bug found live and fixed: a repeat "check now" cancelled and re-queued pending catch-up jobs (toast `2 cancelled, 2 queued`) and wrote false "no longer on the AniList schedule" entries. Cause: pending catch-up jobs were not counted as expected. Fixed in `1b4fb56` with a regression test (45 unit tests).
-- [ ] Not yet confirmed: the repeat "check now" now reports 0 queued and 0 cancelled; only one thread per episode exists; episode threads show the table and the "Next episode" line; "post next episode now" says nothing to post; the `daily-sync` cron at 04:00 UTC fires.
+- [x] After the fix, the user confirmed (reported): the repeat "check now" reports 0 queued and 0 cancelled, there is exactly one thread per episode, the threads show the earlier-episode table and the "Next episode" line, and "post next episode now" says nothing to post.
+- [ ] Not yet confirmed: the `daily-sync` cron at 04:00 UTC fires, and the history shows more than one entry (the box is small).
 - [ ] Still blocked: live AniList fetch (domain rejected) and the Terms and Privacy form.
 
 ## Unit 07: Hardening And Release (2026-10-19)
@@ -111,12 +112,12 @@ Needs human (I cannot do these):
 
 | Unit | Name                              | Status                                   |
 | ---- | --------------------------------- | ---------------------------------------- |
-| 01   | Foundation cleanup                | Done pending input (live menu check)     |
-| 02   | Tracked shows and settings        | Done pending input (live form check)     |
-| 03   | AniList client and scheduling     | Done pending input (domain approval, live check) |
-| 04   | Thread posting and dedup          | Done pending input (live post check)     |
-| 05   | Episode links and next edit       | Done pending input (live post check)     |
-| 06   | History and failure handling      | Done pending input (live check)          |
+| 01   | Foundation cleanup                | Done. Live check passed                  |
+| 02   | Tracked shows and settings        | Done. Live check passed (reported)       |
+| 03   | AniList client and scheduling     | Done on fixture data. Real AniList fetch blocked (domain rejected) |
+| 04   | Thread posting and dedup          | Done. Live check passed on fixture data  |
+| 05   | Episode links and next edit       | Done. Live check passed on fixture data  |
+| 06   | History and failure handling      | Done. Live check passed (history box is small) |
 | 07   | Hardening and release             | Code work done. Release steps need you (see Unit 07 below) |
 | 08   | Season Hub spike (Phase 2)        | Not started                              |
 | 09   | Ratings and season chart (Phase 2)| Not started                              |
