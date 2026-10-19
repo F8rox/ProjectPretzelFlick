@@ -1,5 +1,6 @@
 import { config } from './config.ts';
 import { keys } from './keys.ts';
+import { parseJsonRecord } from './parse.ts';
 
 export type HistoryEntry = {
   type: 'posted' | 'skipped' | 'failed' | 'delayed';
@@ -26,22 +27,18 @@ export const record = async (store: HistoryStore, entry: HistoryEntry): Promise<
 };
 
 const parse = (member: string): HistoryEntry | undefined => {
-  try {
-    const p: unknown = JSON.parse(member);
-    if (typeof p !== 'object' || p === null) return undefined;
-    const { type, mediaId, episode, reason, at } = Object.fromEntries(Object.entries(p));
-    const known = type === 'posted' || type === 'skipped' || type === 'failed' || type === 'delayed';
-    if (!known || typeof reason !== 'string' || typeof at !== 'number') return undefined;
-    return {
-      type,
-      reason,
-      at,
-      ...(typeof mediaId === 'number' ? { mediaId } : {}),
-      ...(typeof episode === 'number' ? { episode } : {}),
-    };
-  } catch {
-    return undefined;
-  }
+  const p = parseJsonRecord(member);
+  if (!p) return undefined;
+  const { type, mediaId, episode, reason, at } = p;
+  const known = type === 'posted' || type === 'skipped' || type === 'failed' || type === 'delayed';
+  if (!known || typeof reason !== 'string' || typeof at !== 'number') return undefined;
+  return {
+    type,
+    reason,
+    at,
+    ...(typeof mediaId === 'number' ? { mediaId } : {}),
+    ...(typeof episode === 'number' ? { episode } : {}),
+  };
 };
 
 /** Newest first. */
@@ -51,7 +48,9 @@ export const recent = async (store: HistoryStore, count: number): Promise<Histor
     return entry ? [entry] : [];
   });
 
+export const formatUtc = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ');
+
 export const describeEntry = (e: HistoryEntry) => {
   const what = e.mediaId === undefined ? '' : ` show ${e.mediaId}${e.episode === undefined ? '' : ` ep ${e.episode}`}`;
-  return `${new Date(e.at).toISOString().slice(0, 16).replace('T', ' ')} UTC  ${e.type}${what}: ${e.reason}`;
+  return `${formatUtc(e.at)} UTC  ${e.type}${what}: ${e.reason}`;
 };

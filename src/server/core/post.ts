@@ -1,4 +1,5 @@
-import { config } from './config.ts';
+import { config, HOUR_MS } from './config.ts';
+import { isRecord, safeHttpsUrl } from './parse.ts';
 import { keys } from './keys.ts';
 import { getSettings, type SettingsStore } from './settings.ts';
 import type { Airing, Stream } from './anilist.ts';
@@ -41,16 +42,15 @@ export const renderBody = (job: PostJobData, earlier: EarlierLink[]) => {
   ].join('\n\n');
 };
 
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-
 /** The job payload comes back from the scheduler, so it is validated like any external input. */
 export const parseJobData = (raw: unknown): PostJobData | undefined => {
   if (!isRecord(raw) || !isRecord(raw.data)) return undefined;
   const { mediaId, episode, airingAt, title, streams } = raw.data;
   if (!Number.isInteger(mediaId) || !Number.isInteger(episode) || !Number.isInteger(airingAt) || typeof title !== 'string') return undefined;
-  const clean = (Array.isArray(streams) ? streams : []).flatMap((s: unknown): Stream[] =>
-    isRecord(s) && typeof s.site === 'string' && typeof s.url === 'string' && s.url.startsWith('https://') ? [{ site: s.site, url: s.url }] : [],
-  );
+  const clean = (Array.isArray(streams) ? streams : []).flatMap((s: unknown): Stream[] => {
+    const url = isRecord(s) ? safeHttpsUrl(s.url) : undefined;
+    return isRecord(s) && typeof s.site === 'string' && url ? [{ site: s.site, url }] : [];
+  });
   return { mediaId: Number(mediaId), episode: Number(episode), airingAt: Number(airingAt), title, streams: clean };
 };
 
@@ -68,7 +68,7 @@ export const postEpisode = async ({ store, poster, nowMs, record }: PostDeps, jo
     await note('skipped', 'auto-post is off');
     return 'auto-post-off';
   }
-  if (nowMs - job.airingAt * 1000 > config.latenessLimitHours * 3_600_000) {
+  if (nowMs - job.airingAt * 1000 > config.latenessLimitHours * HOUR_MS) {
     await note('skipped', `aired more than ${config.latenessLimitHours} hours ago`);
     return 'too-late';
   }
@@ -104,9 +104,9 @@ export const runPostJob = async (deps: PostDeps, job: PostJobData): Promise<Post
   }
 };
 
-/** The earliest airing that has no posted record, for the "Post next episode now" mod action. */
-export const findNextUnposted = async (store: PostStore, airings: Airing[]): Promise<Airing | undefined> => {
-  for (const a of [...airings].sort((x, y) => x.airingAt - y.airingAt)) {
+/** The earliest airing that has already aired and has no posted record, for the "Post next episode now" mod action. */
+export const findNextUnposted = async (store: PostStore, airings: Airing[], nowMs: number): Promise<Airing | undefined> => {
+  for (const a of [...airings].filter((x) => x.airingAt * 1000 <= nowMs).sort((x, y) => x.airingAt - y.airingAt)) {
     if ((await store.hGet(keys.posted(a.mediaId, a.episode), 'state')) !== 'posted') return a;
   }
   return undefined;

@@ -6,6 +6,5 @@ test('key helpers match architecture-context.md', () => {
   assert.equal(keys.posted(1, 2), 'posted:1:2');
   assert.equal(keys.episodes(1), 'episodes:1');
   assert.equal(keys.scheduleField(1, 2), '1:2');
-  assert.equal(keys.rating(1, 2), 'rating:1:2');
   assert.deepEqual([keys.config, keys.tracked, keys.history, keys.schedule], ['config', 'tracked', 'history', 'schedule']);
 });

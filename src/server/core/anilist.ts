@@ -1,4 +1,5 @@
-import { config } from './config.ts';
+import { config, HOUR_MS } from './config.ts';
+import { isRecord, safeHttpsUrl } from './parse.ts';
 
 export type Stream = { site: string; url: string };
 
@@ -15,17 +16,14 @@ const QUERY = `query ($ids: [Int], $from: Int, $to: Int) {
   }
 }`;
 
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-
 const bad = () => new Error('AniList response has an unexpected shape');
 
 // Only official streaming links over https are kept. Anything else is dropped, never guessed.
 const parseStreams = (links: unknown): Stream[] =>
-  (Array.isArray(links) ? links : []).flatMap((l: unknown): Stream[] =>
-    isRecord(l) && l.type === 'STREAMING' && typeof l.site === 'string' && typeof l.url === 'string' && l.url.startsWith('https://')
-      ? [{ site: l.site, url: l.url }]
-      : [],
-  );
+  (Array.isArray(links) ? links : []).flatMap((l: unknown): Stream[] => {
+    const url = isRecord(l) ? safeHttpsUrl(l.url) : undefined;
+    return isRecord(l) && l.type === 'STREAMING' && typeof l.site === 'string' && url ? [{ site: l.site, url }] : [];
+  });
 
 /** Validates the raw GraphQL response. Any mismatch throws, so a run never acts on guessed data. */
 export const parseAiring = (json: unknown): Airing[] => {
@@ -51,7 +49,7 @@ export const fixtureAiring = (ids: number[], nowMs: number): Airing[] =>
   ids.map((mediaId, i) => ({
     mediaId,
     episode: 3,
-    airingAt: Math.floor(nowMs / 1000) + 3600 * (i + 1),
+    airingAt: Math.floor((nowMs + HOUR_MS * (i + 1)) / 1000),
     title: `Test Show ${mediaId}`,
     streams: [{ site: 'Example Stream', url: 'https://example.com/watch' }],
   }));
@@ -88,8 +86,8 @@ export const fetchAiring = async (ids: number[], nowMs: number, fixture = false)
     query: QUERY,
     variables: {
       ids,
-      from: nowSec - config.latenessLimitHours * 3600,
-      to: nowSec + config.scheduleHorizonHours * 3600,
+      from: nowSec - (config.latenessLimitHours * HOUR_MS) / 1000,
+      to: nowSec + (config.scheduleHorizonHours * HOUR_MS) / 1000,
     },
   });
   return parseAiring(await postWithRetry(body));

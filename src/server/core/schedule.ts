@@ -1,5 +1,7 @@
-import { config } from './config.ts';
+import { config, HOUR_MS, MINUTE_MS } from './config.ts';
+import { formatUtc } from './history.ts';
 import { keys } from './keys.ts';
+import { parseJsonRecord } from './parse.ts';
 import type { Airing } from './anilist.ts';
 import { POST_JOB, toJobData, type PostJobData, type RecordFn } from './post.ts';
 import { listShows, type TrackedStore } from './tracked.ts';
@@ -27,16 +29,12 @@ export type SyncDeps = {
 export type SyncSummary = { scheduled: number; moved: number; cancelled: number; queued: number };
 
 type Entry = { jobId: string; runAt: number };
+type Wanted = { airing: Airing; runAt: number };
+type Plan = { tracked: number[]; existing: Map<string, Entry>; wanted: Map<string, Wanted>; late: Airing[]; horizonMs: number };
 
 const parseEntry = (value: string): Entry | undefined => {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (typeof parsed !== 'object' || parsed === null) return undefined;
-    const { jobId, runAt } = { jobId: Reflect.get(parsed, 'jobId'), runAt: Reflect.get(parsed, 'runAt') };
-    return typeof jobId === 'string' && typeof runAt === 'number' ? { jobId, runAt } : undefined;
-  } catch {
-    return undefined;
-  }
+  const p = parseJsonRecord(value);
+  return typeof p?.jobId === 'string' && typeof p.runAt === 'number' ? { jobId: p.jobId, runAt: p.runAt } : undefined;
 };
 
 const parseEntries = (raw: Record<string, string>) =>
@@ -45,71 +43,94 @@ const parseEntries = (raw: Record<string, string>) =>
     return entry ? [[field, entry]] : [];
   });
 
-/**
- * Brings scheduled jobs in line with AniList: one job per upcoming episode, moved when the air time
- * changes, cancelled when the show or episode is gone. Fetches first, so a failure changes nothing.
- */
-export const reconcile = async ({ store, scheduler, fetchAiring, nowMs, record }: SyncDeps): Promise<SyncSummary> => {
-  const summary: SyncSummary = { scheduled: 0, moved: 0, cancelled: 0, queued: 0 };
+/** Fetches first, so an AniList failure changes nothing. Then sorts every episode into wanted jobs or late catch-ups. */
+const makePlan = async ({ store, fetchAiring, nowMs }: SyncDeps): Promise<Plan> => {
   const tracked = await listShows(store);
   const airings = await fetchAiring(tracked, nowMs);
   const { postDelayMinutes } = await getSettings(store);
   const existing = new Map(parseEntries(await store.hGetAll(keys.schedule)));
-  const horizonMs = nowMs + config.scheduleHorizonHours * 3_600_000;
-  const lateFromMs = nowMs - config.latenessLimitHours * 3_600_000;
-  const wanted = new Map<string, { airing: Airing; runAt: number }>();
+  const horizonMs = nowMs + config.scheduleHorizonHours * HOUR_MS;
+  const lateFromMs = nowMs - config.latenessLimitHours * HOUR_MS;
+  const wanted = new Map<string, Wanted>();
   const late: Airing[] = [];
-
   for (const airing of airings) {
     if (!tracked.includes(airing.mediaId)) continue;
     const airMs = airing.airingAt * 1000;
-    const runAt = airMs + postDelayMinutes * 60_000;
+    const runAt = airMs + postDelayMinutes * MINUTE_MS;
     if (runAt > nowMs && airMs <= horizonMs) wanted.set(keys.scheduleField(airing.mediaId, airing.episode), { airing, runAt });
     else if (runAt <= nowMs && airMs >= lateFromMs) late.push(airing);
   }
+  return { tracked, existing, wanted, late, horizonMs };
+};
 
-  const drop = async (field: string, entry: Entry) => {
+/** Removes jobs that already fired, and cancels jobs for untracked shows or episodes AniList dropped. */
+const prune = async ({ store, scheduler, nowMs, record }: SyncDeps, { tracked, existing, wanted, horizonMs }: Plan): Promise<number> => {
+  let cancelled = 0;
+  for (const [field, entry] of existing) {
+    if (entry.runAt <= nowMs) {
+      await store.hDel(keys.schedule, [field]); // already fired: nothing to cancel
+      continue;
+    }
+    const [mediaId, episode] = field.split(':').map(Number);
+    const isTracked = mediaId !== undefined && tracked.includes(mediaId);
+    if (isTracked && (wanted.has(field) || entry.runAt > horizonMs)) continue;
     await scheduler.cancelJob(entry.jobId);
     await store.hDel(keys.schedule, [field]);
-  };
-
-  for (const [field, entry] of existing) {
-    const isTracked = tracked.includes(Number(field.split(':')[0]));
-    if (entry.runAt <= nowMs) await store.hDel(keys.schedule, [field]); // already fired: nothing to cancel
-    else if (!isTracked || (!wanted.has(field) && entry.runAt <= horizonMs)) {
-      await drop(field, entry);
-      summary.cancelled++;
-      const [mediaId, episode] = field.split(':').map(Number);
-      if (isTracked) await record({ type: 'skipped', mediaId, episode, reason: 'no longer on the AniList schedule', at: nowMs });
-    }
+    cancelled++;
+    if (isTracked) await record({ type: 'skipped', mediaId, episode, reason: 'no longer on the AniList schedule', at: nowMs });
   }
+  return cancelled;
+};
 
-  const schedule = async (field: string, airing: Airing, runAt: number) => {
-    const jobId = await scheduler.runJob({ name: POST_JOB, data: toJobData(airing), runAt: new Date(runAt) });
-    await store.hSet(keys.schedule, { [field]: JSON.stringify({ jobId, runAt }) });
-  };
+const startJob = async ({ store, scheduler }: SyncDeps, field: string, airing: Airing, runAt: number) => {
+  const jobId = await scheduler.runJob({ name: POST_JOB, data: toJobData(airing), runAt: new Date(runAt) });
+  await store.hSet(keys.schedule, { [field]: JSON.stringify({ jobId, runAt }) });
+};
 
+/** Creates a job for every wanted episode, and moves a job whose air time changed. */
+const scheduleWanted = async (deps: SyncDeps, { existing, wanted }: Plan) => {
+  const { store, scheduler, nowMs, record } = deps;
+  let scheduled = 0;
+  let moved = 0;
   for (const [field, { airing, runAt }] of wanted) {
     if (await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) continue;
     const current = existing.get(field);
-    if (current && current.runAt > nowMs && current.runAt === runAt) continue;
-    if (current && current.runAt > nowMs) {
-      await scheduler.cancelJob(current.jobId);
-      summary.moved++;
-      const iso = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ');
-      await record({ type: 'delayed', mediaId: airing.mediaId, episode: airing.episode, reason: `air time moved from ${iso(current.runAt)} to ${iso(runAt)} UTC`, at: nowMs });
-    } else summary.scheduled++;
-    await schedule(field, airing, runAt);
+    const live = current && current.runAt > nowMs ? current : undefined;
+    if (live?.runAt === runAt) continue;
+    if (live) {
+      await scheduler.cancelJob(live.jobId);
+      moved++;
+      const reason = `air time moved from ${formatUtc(live.runAt)} to ${formatUtc(runAt)} UTC`;
+      await record({ type: 'delayed', mediaId: airing.mediaId, episode: airing.episode, reason, at: nowMs });
+    } else scheduled++;
+    await startJob(deps, field, airing, runAt);
   }
+  return { scheduled, moved };
+};
 
-  // Aired within the lateness limit and not yet posted: queue now. Dedup at post time keeps this safe to repeat.
+/** Aired within the lateness limit and not yet posted: queue now. Dedup at post time keeps repeats safe. */
+const queueLate = async (deps: SyncDeps, { late }: Plan): Promise<number> => {
+  const { store, nowMs, record } = deps;
   for (const airing of late.slice(config.maxPostsPerRun)) {
     await record({ type: 'skipped', mediaId: airing.mediaId, episode: airing.episode, reason: 'over the per-run posting cap', at: nowMs });
   }
+  let queued = 0;
   for (const airing of late.slice(0, config.maxPostsPerRun)) {
     if (await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) continue;
-    await schedule(keys.scheduleField(airing.mediaId, airing.episode), airing, nowMs + config.catchUpDelayMs);
-    summary.queued++;
+    await startJob(deps, keys.scheduleField(airing.mediaId, airing.episode), airing, nowMs + config.catchUpDelayMs);
+    queued++;
   }
-  return summary;
+  return queued;
+};
+
+/**
+ * Brings scheduled jobs in line with AniList: one job per upcoming episode, moved when the air time
+ * changes, cancelled when the show or episode is gone.
+ */
+export const reconcile = async (deps: SyncDeps): Promise<SyncSummary> => {
+  const plan = await makePlan(deps);
+  const cancelled = await prune(deps, plan);
+  const { scheduled, moved } = await scheduleWanted(deps, plan);
+  const queued = await queueLate(deps, plan);
+  return { scheduled, moved, cancelled, queued };
 };

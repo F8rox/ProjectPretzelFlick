@@ -1,5 +1,6 @@
 import { config } from './config.ts';
 import { keys } from './keys.ts';
+import { parseJsonRecord } from './parse.ts';
 import type { EarlierLink, PostedThread, Poster } from './types.ts';
 
 /** `locked` means the edit that adds this thread's "next episode" link failed, most likely because it is archived. */
@@ -20,16 +21,12 @@ export const windowFor = (ep: number) => {
 };
 
 const parseEntry = (value: string): EpisodeEntry | undefined => {
-  try {
-    const p: unknown = JSON.parse(value);
-    if (typeof p !== 'object' || p === null) return undefined;
-    const { postId, permalink, postedAt, status } = Object.fromEntries(Object.entries(p));
-    return typeof postId === 'string' && typeof permalink === 'string' && typeof postedAt === 'number' && (status === 'active' || status === 'locked')
-      ? { postId, permalink, postedAt, status }
-      : undefined;
-  } catch {
-    return undefined;
-  }
+  const p = parseJsonRecord(value);
+  if (!p) return undefined;
+  const { postId, permalink, postedAt, status } = p;
+  return typeof postId === 'string' && typeof permalink === 'string' && typeof postedAt === 'number' && (status === 'active' || status === 'locked')
+    ? { postId, permalink, postedAt, status }
+    : undefined;
 };
 
 export const loadEpisodes = async (store: EpisodeStore, mediaId: number): Promise<Map<number, EpisodeEntry>> => {

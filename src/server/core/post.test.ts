@@ -107,7 +107,7 @@ test('auto-post off and too-late episodes post nothing', async () => {
 
 test('parseJobData validates the scheduler payload and drops non-https streams', () => {
   const ok = { name: 'post-episode', data: { ...job(), streams: [{ site: 'A', url: 'https://a.example' }, { site: 'B', url: 'http://b.example' }] } };
-  assert.deepEqual(parseJobData(ok)?.streams, [{ site: 'A', url: 'https://a.example' }]);
+  assert.deepEqual(parseJobData(ok)?.streams, [{ site: 'A', url: 'https://a.example/' }]);
   for (const bad of [undefined, {}, { data: {} }, { data: { ...job(), episode: 'x' } }, { data: { ...job(), title: 5 } }]) {
     assert.equal(parseJobData(bad), undefined);
   }
@@ -117,9 +117,12 @@ test('findNextUnposted picks the earliest episode without a thread', async () =>
   const t = setup();
   t.h('posted:1:1').set('state', 'posted');
   const air = (mediaId: number, episode: number, airingAt: number): Airing => ({ mediaId, episode, airingAt, title: 'x', streams: [] });
-  const next = await findNextUnposted(t.store, [air(1, 2, 300), air(1, 1, 100), air(2, 1, 200)]);
+  const now = 1_000_000;
+  const next = await findNextUnposted(t.store, [air(1, 2, 300), air(1, 1, 100), air(2, 1, 200)], now);
   assert.deepEqual([next?.mediaId, next?.episode], [2, 1]);
-  assert.equal(await findNextUnposted(t.store, []), undefined);
+  assert.equal(await findNextUnposted(t.store, [], now), undefined);
+  // not yet aired: never offered, so "post next episode now" cannot post early
+  assert.equal(await findNextUnposted(t.store, [air(3, 1, now / 1000 + 60)], now), undefined);
 });
 
 const ep = (episode: number) => job({ episode });
