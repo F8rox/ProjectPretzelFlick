@@ -13,7 +13,7 @@ Units 01 to 06.
 ## Build
 
 - Run the security checklist in `security-context.md` over every route, menu item, and fetch. Fix defects only.
-- Confirm `USE_FIXTURE` is `false` and no `MOCK:` item remains in the production path.
+- Confirm `config.fixtureOnDevSubreddit` is `false` and no `MOCK:` item remains in the production path.
 - Rewrite `README.md`: what the app does, install and settings steps for mods, commands, folder layout, the Fetch Domains section, and a link to `context/`.
 - Set the app name, description, and listing details in Developer Settings (list this under "needs human").
 - Run `npm audit` and record the result. Run a secret scan.

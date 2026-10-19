@@ -12,7 +12,7 @@ Units 01 and 02.
 
 ## Build
 
-- `anilist.ts`: one function returning the next airing episodes for a list of media IDs, using one batched query. Validate the response shape. Timeout and one retry. `USE_FIXTURE` returns recorded fixtures.
+- `anilist.ts`: one function returning the next airing episodes for a list of media IDs, using one batched query. Validate the response shape. Timeout and one retry. the fixture flag returns recorded fixtures (dev subreddit only).
 - `schedule.ts`: a `reconcile` function. For each tracked show and upcoming episode it creates a one-off job at `airingAt + postDelayMinutes`, moves a job whose air time changed, and cancels a job for a removed show. The job id is stored at `schedule:{mediaId}:{episode}`.
 - A daily cron task registered in `devvit.json` that runs `reconcile`. It also finds episodes that already aired, have no `posted` record, and are inside the lateness limit, and queues them for Unit 04.
 - A "Check now" mod menu item that runs the same function.
@@ -33,4 +33,4 @@ Posting threads, dedup records, the earlier-episode table.
 
 ## Verify
 
-Unit tests with fixtures and a fake scheduler and store. Then, once approved, `USE_FIXTURE = false` and "Check now" on the test subreddit.
+Unit tests with fixtures and a fake scheduler and store. Then, once approved, `config.fixtureOnDevSubreddit = false` and "Check now" on the test subreddit.

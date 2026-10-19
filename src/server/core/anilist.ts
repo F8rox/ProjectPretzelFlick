@@ -43,8 +43,9 @@ export const parseAiring = (json: unknown): Airing[] => {
   });
 };
 
-// MOCK: stands in for graphql.anilist.co until Devvit approves the domain. Set false once approved.
-export const USE_FIXTURE = true;
+/** Fake data is allowed only on the dev subreddit, so a published app can never post it elsewhere. */
+export const shouldUseFixture = (subredditName: string) =>
+  config.fixtureOnDevSubreddit && subredditName.toLowerCase() === config.devSubreddit;
 
 export const fixtureAiring = (ids: number[], nowMs: number): Airing[] =>
   ids.map((mediaId, i) => ({
@@ -79,9 +80,9 @@ const postWithRetry = async (body: string): Promise<unknown> => {
  * Episodes airing from `lateness` hours ago to `horizon` hours ahead for the given shows.
  * shortcut: first page only (50 episodes), upgrade to paging when a sub tracks enough shows to pass that in one window.
  */
-export const fetchAiring = async (ids: number[], nowMs: number): Promise<Airing[]> => {
+export const fetchAiring = async (ids: number[], nowMs: number, fixture = false): Promise<Airing[]> => {
   if (!ids.length) return [];
-  if (USE_FIXTURE) return fixtureAiring(ids, nowMs);
+  if (fixture) return fixtureAiring(ids, nowMs);
   const nowSec = Math.floor(nowMs / 1000);
   const body = JSON.stringify({
     query: QUERY,

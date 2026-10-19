@@ -89,7 +89,7 @@ Only continue to the next unit if every answer is yes and every acceptance crite
 UNIT REMINDERS
 - Unit 01: remove starter leftovers nothing references, add config.ts and keys.ts, keep the MOCK: test post and scheduler task until Unit 04.
 - Unit 02: forms are mod-only, IDs are validated integers, duplicates keep one entry.
-- Unit 03: one batched AniList query, validated response, one job per air time, reconcile is idempotent. AniList is not approved yet, so use USE_FIXTURE and mark the live-fetch criterion "blocked on input". Do not change that flag to false until I confirm approval.
+- Unit 03: one batched AniList query, validated response, one job per air time, reconcile is idempotent. AniList is not approved yet, so use config.fixtureOnDevSubreddit and mark the live-fetch criterion "blocked on input". Do not change that flag to false until I confirm approval.
 
 HARD RULES
 - Do not build anything listed under Out Of Scope in context/project-overview.md.
@@ -137,7 +137,7 @@ B. BUILD only that unit.
 - Follow code-standards.md exactly. Reuse existing helpers. Do not create a second version of anything that exists.
 - Unit 05 replaces the old edit-every-earlier-thread loop in episodes.ts. Keep windowFor. Delete the old loop and its old tests, and write new tests.
 - Tunable numbers come from config.ts.
-- Mocked or fixture data stays behind USE_FIXTURE with a "MOCK:" comment.
+- Mocked or fixture data stays behind config.fixtureOnDevSubreddit with a "MOCK:" comment.
 
 C. VERIFY
 - Run typecheck, lint, unit tests, and build.
@@ -161,7 +161,7 @@ UNIT REMINDERS
 HARD RULES
 - Do not build anything under Out Of Scope: no TV or movies, no editing older threads, no React panel, no ratings.
 - Do not start Units 07 and later, Phase 2, or Phase 3.
-- Never fetch a domain that is not approved. AniList stays on USE_FIXTURE until I say the domain is approved.
+- Never fetch a domain that is not approved. AniList stays on the fixture (config.fixtureOnDevSubreddit, dev subreddit only) until I say the domain is approved.
 - Ambiguity that blocks: add to Open Questions, stop, ask me. Non-blocking: record and continue with the safest option the specs allow.
 - INPUTS PROTOCOL: never stop the build for a missing approval, login, or secret. Add a row to "Inputs Needed From User" in progress-tracker.md, use the fallback in context/ai-workflow-rules.md, mark affected criteria "blocked on input", and keep going. Ask me for inputs at the end of each unit and in the final report. Never ask me to paste a secret in chat.
 - Do not call a unit done unless every acceptance criterion was actually checked. A criterion that needs one of my inputs is reported as "blocked on input", never as passed.
@@ -193,7 +193,7 @@ STEP 2: BUILD UNIT 07 USING THIS LOOP
 A. CONTEXT GATE: re-open and re-read the spec; ai-workflow-rules.md "How To Work A Unit" and "Definition Of Done"; progress-tracker.md; code-standards.md; the whole security-context.md. Write a Unit brief of at most 10 lines.
 B. WORK (fix defects only, no new features):
 - Run the security checklist over every route, menu item, form, trigger, scheduler task, and fetch. Record each result.
-- Search the repo for active MOCK: code and USE_FIXTURE. If the AniList domain is approved, set USE_FIXTURE false only after I confirm. If not, mark that criterion "blocked on input".
+- Search the repo for active MOCK: code and config.fixtureOnDevSubreddit. If the AniList domain is approved, set it to false only after I confirm. If not, mark that criterion "blocked on input".
 - Search for Out Of Scope items, dead code, unused dependencies, unused exports, files over the size limits, and files outside the folder layout.
 - Rewrite README.md for a mod: what it does, install and settings steps, commands, folder layout, the Fetch Domains section, and a link to context/.
 - Run npm audit and a secret scan. Record results.
@@ -288,7 +288,7 @@ Defect: [describe what you saw, where, and what you expected]
 ```text
 I completed these inputs: [list, for example "AniList domain approved", "ran npm run dev on r/pretzelflick_dev2"].
 1. Re-read context/ai-workflow-rules.md section "Inputs Needed From The User" and the "Inputs Needed From User" table in context/progress-tracker.md.
-2. Re-run every acceptance criterion marked "blocked on input" that these inputs unblock. Use the real integration instead of the fixture where the input replaces it, and remove any MOCK: that is no longer needed. If AniList is approved, set USE_FIXTURE to false.
+2. Re-run every acceptance criterion marked "blocked on input" that these inputs unblock. Use the real integration instead of the fixture where the input replaces it, and remove any MOCK: that is no longer needed. If AniList is approved, set config.fixtureOnDevSubreddit to false.
 3. Run typecheck, lint, unit tests, build, and the security checklist for the affected units.
 4. Update progress-tracker.md: criteria status, the inputs table status, and Architecture Decisions if a fallback was replaced.
 5. Report which criteria now pass, which still fail or remain blocked, and any inputs still needed. Then continue the current prompt from where you left off.

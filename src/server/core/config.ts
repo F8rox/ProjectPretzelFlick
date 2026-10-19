@@ -1,4 +1,8 @@
 export const config = {
+  /** MOCK: stand-in AniList data, used only on the dev subreddit below. Set false once Reddit approves graphql.anilist.co. */
+  fixtureOnDevSubreddit: true,
+  /** Must match `dev.subreddit` in devvit.json. The fixture can never run anywhere else. */
+  devSubreddit: 'pretzelflick_dev2',
   /** Mod settings defaults and limits. */
   defaultAutoPost: true,
   defaultPostDelayMinutes: 0,

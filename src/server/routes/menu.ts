@@ -1,9 +1,8 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
-import { fetchAiring } from '../core/anilist';
 import { describeEntry, record, recent } from '../core/history';
 import { findNextUnposted, runPostJob, toJobData } from '../core/post';
-import { describeSync, runSync } from './sync';
+import { describeSync, fetchForThisInstall, runSync } from './sync';
 import { poster } from './poster';
 import { redis } from '@devvit/web/server';
 import { listShows } from '../core/tracked';
@@ -75,7 +74,7 @@ menu.post('/settings-open', async (c) => {
 menu.post('/post-next', async (c) => {
   try {
     const nowMs = Date.now();
-    const airing = await findNextUnposted(redis, await fetchAiring(await listShows(redis), nowMs));
+    const airing = await findNextUnposted(redis, await fetchForThisInstall(await listShows(redis), nowMs));
     if (!airing) return c.json<UiResponse>({ showToast: 'Nothing to post: every tracked episode in range already has a thread.' }, 200);
     const outcome = await runPostJob({ store: redis, poster, nowMs, record: (entry) => record(redis, entry) }, toJobData(airing));
     return c.json<UiResponse>({ showToast: `${airing.title} episode ${airing.episode}: ${outcome}` }, 200);

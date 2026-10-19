@@ -16,7 +16,7 @@ None.
 - Add `src/server/core/config.ts` with the tunable numbers: window size, lateness limit, history length, posts-per-run cap, minimum votes (Phase 2).
 - Add `src/server/core/keys.ts` with one function per Redis key from `architecture-context.md`.
 - Keep the "test airing post" menu item and the `airing-check` scheduler task, each marked `MOCK:` in a comment, until Unit 04 replaces them.
-- Keep `USE_FIXTURE` in `anilist.ts` and record it in the tracker.
+- Keep the fixture flag (`config.fixtureOnDevSubreddit`) and record it in the tracker.
 - Make sure `npm run test:unit` runs from a clean checkout.
 
 ## Not In This Unit

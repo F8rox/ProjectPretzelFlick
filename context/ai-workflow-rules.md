@@ -63,7 +63,7 @@ Some work needs something only the user can provide: Reddit login, playtest on t
 
 1. **Record it.** Add the variable name to `.env.example` if there is one, and a row to "Inputs Needed From User" in `progress-tracker.md`.
 2. **Use a fallback and keep building.**
-   - AniList domain not yet approved: fixture mode behind a config flag (`USE_FIXTURE`), marked `MOCK:`. Unit tests always use fixtures.
+   - AniList domain not yet approved: fixture mode behind `config.fixtureOnDevSubreddit`, marked `MOCK:`. It runs only on the dev subreddit. Unit tests always use fixtures.
    - No Reddit login or playtest available: write and unit-test the logic with fake `HashStore` and `Poster`, and mark the live checks blocked.
    - Developer Settings changes (domain approval, app description): list them under "needs human".
    - TMDB key (Phase 3): fixture responses until the key is set.
