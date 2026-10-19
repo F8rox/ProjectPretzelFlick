@@ -113,7 +113,7 @@ Needs human (I cannot do these):
 
 | Input                                   | Where                                         | Unblocks                                  |
 | --------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| AniList domain approval                 | developers.reddit.com app, Developer Settings | Unit 03 live fetch, Unit 04 real data     |
+| AniList domain approval: REJECTED (2026-10-19, no reason shown). Find the reason, appeal or re-request, or choose a fallback (see Open Questions) | developers.reddit.com app, Developer Settings | Unit 03 live fetch, Unit 04 real data |
 | Run `npm run dev`, confirm the menu items, both forms, "check now", "post next episode now" (twice), post two consecutive episodes, "recent activity", and the `post-episode` log | `r/pretzelflick_dev2` | Unit 01 to 06 live checks |
 | Fetch Domains README section reviewed   | `README.md`                                   | Unit 07 review submission                 |
 | App description and listing details     | Developer Settings                            | Unit 07 review submission                 |
@@ -121,6 +121,8 @@ Needs human (I cannot do these):
 | A real subreddit to install on          | Mods of 2-3 anime subs                        | Success criterion 9                       |
 
 ## Open Questions
+
+0. Reddit rejected `graphql.anilist.co` under Domain exceptions (2026-10-19). Unknown reason. No official appeal process was found. Next: read the "here" and "globally allowlisted domain" links on that page, ask the App Review team why, and re-request with a justification. Fallback options if it stays rejected: a globally allowlisted data source, or mod-entered schedules (loses automatic delay handling). The dev subreddit keeps using the fixture meanwhile.
 
 1. Does a Devvit custom post keep normal comments, identify the viewer, and accept a text fallback? (Phase 2 spike, Unit 08.)
 2. How many scheduler jobs per installation does Devvit allow? Unit 03 schedules one per episode inside a 48-hour horizon, so a large tracked list could hit a limit. Check in the playtest.
