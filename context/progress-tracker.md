@@ -33,6 +33,18 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - [ ] Unit 01 live check: the remaining menu item still appears after `npm run dev` on `r/pretzelflick_dev2`. Blocked on input.
 - [x] `README.md` was rewritten (audit finding 11) and has a "Fetch Domains" section. Unit 07 only needs to re-check it is accurate at release.
 
+## Live Checks On r/pretzelflick_dev2 (2026-10-19, fixture data, playtest v0.0.3.5)
+
+Evidence I saw myself is marked (seen). Evidence the user reported is marked (reported).
+
+- [x] Menus and forms (Units 01, 02): the user ran menu, tracked shows (add 154587), settings, check now, and recent activity and said all worked (reported, no toast texts given).
+- [x] Unit 03 sync: "check now" toast `0 scheduled, 0 moved, 1 cancelled, 2 queued` (seen, screenshot). The catch-up jobs fired about a minute later.
+- [x] Unit 04 scheduled posting: the playtest log showed `post-episode 154587 ep 2: posted` and `post-episode 154587 ep 3: posted` (seen).
+- [x] Unit 06 history: "recent activity" opened and listed `posted show 154587 ep 3` at 2026-10-19 17:40 UTC (seen, screenshot). The visible box is small, so further lines may need scrolling (not checked).
+- [x] Bug found live and fixed: a repeat "check now" cancelled and re-queued pending catch-up jobs (toast `2 cancelled, 2 queued`) and wrote false "no longer on the AniList schedule" entries. Cause: pending catch-up jobs were not counted as expected. Fixed in `1b4fb56` with a regression test (45 unit tests).
+- [ ] Not yet confirmed: the repeat "check now" now reports 0 queued and 0 cancelled; only one thread per episode exists; episode threads show the table and the "Next episode" line; "post next episode now" says nothing to post; the `daily-sync` cron at 04:00 UTC fires.
+- [ ] Still blocked: live AniList fetch (domain rejected) and the Terms and Privacy form.
+
 ## Unit 07: Hardening And Release (2026-10-19)
 
 Security checklist, every item run against the final code:
