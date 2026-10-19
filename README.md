@@ -37,6 +37,13 @@ The app posts only for a real, already aired episode of a show you track. It nev
 
 - `graphql.anilist.co`: AniList's public GraphQL API. Used to read anime airing schedules (episode numbers, air times, and official streaming links) so the app can post discussion threads when an episode airs. Read-only, no user data sent.
 
+## Legal
+
+- [Privacy Policy](legal/privacy-policy.md)
+- [Terms and Conditions](legal/terms-and-conditions.md)
+
+Reddit requires both for any app that uses `fetch`. They are drafts: review them and add a contact before relying on them.
+
 ## Development
 
 Requires Node 24 and a Reddit developer account.
@@ -60,6 +67,7 @@ Until the AniList domain is approved, the dev subreddit uses fake fixture data (
 src/server/core/      rules: AniList client, scheduling, posting, links, history, settings
 src/server/routes/    thin Hono routes for menu items, forms, and scheduler tasks
 devvit.json           permissions, menu items, forms, scheduler tasks
+legal/                privacy policy and terms (required by Reddit for apps that fetch)
 context/              specs: overview, architecture, standards, security, feature specs, progress
 build-prompts.md      the phased build prompts
 ```

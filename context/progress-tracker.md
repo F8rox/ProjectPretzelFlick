@@ -116,13 +116,14 @@ Needs human (I cannot do these):
 | AniList domain approval: REJECTED (2026-10-19, no reason shown). Find the reason, appeal or re-request, or choose a fallback (see Open Questions) | developers.reddit.com app, Developer Settings | Unit 03 live fetch, Unit 04 real data |
 | Run `npm run dev`, confirm the menu items, both forms, "check now", "post next episode now" (twice), post two consecutive episodes, "recent activity", and the `post-episode` log | `r/pretzelflick_dev2` | Unit 01 to 06 live checks |
 | Fetch Domains README section reviewed   | `README.md`                                   | Unit 07 review submission                 |
-| App description and listing details     | Developer Settings                            | Unit 07 review submission                 |
+| App description, listing details, and links to the Terms and Privacy Policy (drafts in `legal/`, contact must be added and published at a public URL) | Developer Settings | Unit 07 review submission, domain approval |
 | Upload and publish for review           | `npx devvit upload`, then `npm run launch`    | Unit 07 review criterion                  |
 | A real subreddit to install on          | Mods of 2-3 anime subs                        | Success criterion 9                       |
 
 ## Open Questions
 
-0. Reddit rejected `graphql.anilist.co` under Domain exceptions (2026-10-19). Unknown reason. No official appeal process was found. Next: read the "here" and "globally allowlisted domain" links on that page, ask the App Review team why, and re-request with a justification. Fallback options if it stays rejected: a globally allowlisted data source, or mod-entered schedules (loses automatic delay handling). The dev subreddit keeps using the fixture meanwhile.
+0. Likely cause, from Reddit's HTTP fetch docs: "Any app that uses `fetch` must upload Terms and Conditions and a Privacy Policy" and save their links in the app details form. Both fields were empty. Drafts are in `legal/`. Not confirmed as the reason. The global fetch allowlist has no anime data source (checked 2026-10-19). App version 0.0.2 was uploaded privately on 2026-10-19 to resubmit the domain.
+0b. Reddit rejected `graphql.anilist.co` under Domain exceptions (2026-10-19). Unknown reason. No official appeal process was found. Next: read the "here" and "globally allowlisted domain" links on that page, ask the App Review team why, and re-request with a justification. Fallback options if it stays rejected: a globally allowlisted data source, or mod-entered schedules (loses automatic delay handling). The dev subreddit keeps using the fixture meanwhile.
 
 1. Does a Devvit custom post keep normal comments, identify the viewer, and accept a text fallback? (Phase 2 spike, Unit 08.)
 2. How many scheduler jobs per installation does Devvit allow? Unit 03 schedules one per episode inside a 48-hour horizon, so a large tracked list could hit a limit. Check in the playtest.

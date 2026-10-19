@@ -68,6 +68,7 @@ src/
   shared/                 types shared by client and server
 context/                  specs (this folder)
 scripts/                  release-check.mjs, run by `npm run launch`
+legal/                    privacy-policy.md and terms-and-conditions.md
 devvit.json               permissions, menu, forms, triggers, scheduler, settings
 ```
 
