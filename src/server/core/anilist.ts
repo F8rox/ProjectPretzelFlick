@@ -45,14 +45,17 @@ export const parseAiring = (json: unknown): Airing[] => {
 export const shouldUseFixture = (subredditName: string) =>
   config.fixtureOnDevSubreddit && subredditName.toLowerCase() === config.devSubreddit;
 
+// Episodes 2 and 3 have already aired (2 and 1 hours ago), so a sync queues them and the posting path can be tried live.
 const fixtureAiring = (ids: number[], nowMs: number): Airing[] =>
-  ids.map((mediaId, i) => ({
-    mediaId,
-    episode: 3,
-    airingAt: Math.floor((nowMs + HOUR_MS * (i + 1)) / 1000),
-    title: `Test Show ${mediaId}`,
-    streams: [{ site: 'Example Stream', url: 'https://example.com/watch' }],
-  }));
+  ids.flatMap((mediaId) =>
+    [2, 3].map((episode) => ({
+      mediaId,
+      episode,
+      airingAt: Math.floor((nowMs - HOUR_MS * (4 - episode)) / 1000),
+      title: `Test Show ${mediaId}`,
+      streams: [{ site: 'Example Stream', url: 'https://example.com/watch' }],
+    })),
+  );
 
 const post = async (body: string): Promise<unknown> => {
   const res = await fetch('https://graphql.anilist.co', {
