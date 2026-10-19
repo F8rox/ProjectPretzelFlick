@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
 import { fetchAiring } from '../core/anilist';
-import { findNextUnposted, postEpisode, toJobData } from '../core/post';
+import { describeEntry, record, recent } from '../core/history';
+import { findNextUnposted, runPostJob, toJobData } from '../core/post';
 import { describeSync, runSync } from './sync';
 import { poster } from './poster';
 import { redis } from '@devvit/web/server';
@@ -26,6 +27,20 @@ menu.post('/tracked-open', async (c) => {
             ? [{ type: 'select' as const, name: 'remove', label: 'Stop tracking', multiSelect: true, options: shows.map((id) => ({ label: String(id), value: String(id) })) }]
             : []),
         ],
+      },
+    },
+  });
+});
+
+menu.post('/activity-open', async (c) => {
+  const entries = await recent(redis, config.historyShown);
+  return c.json<UiResponse>({
+    showForm: {
+      name: 'activityForm',
+      form: {
+        title: 'Recent activity',
+        acceptLabel: 'Close',
+        fields: [{ type: 'paragraph', name: 'log', label: 'Newest first', disabled: true, defaultValue: entries.map(describeEntry).join('\n') || 'No activity yet.' }],
       },
     },
   });
@@ -62,7 +77,7 @@ menu.post('/post-next', async (c) => {
     const nowMs = Date.now();
     const airing = await findNextUnposted(redis, await fetchAiring(await listShows(redis), nowMs));
     if (!airing) return c.json<UiResponse>({ showToast: 'Nothing to post: every tracked episode in range already has a thread.' }, 200);
-    const outcome = await postEpisode({ store: redis, poster, nowMs }, toJobData(airing));
+    const outcome = await runPostJob({ store: redis, poster, nowMs, record: (entry) => record(redis, entry) }, toJobData(airing));
     return c.json<UiResponse>({ showToast: `${airing.title} episode ${airing.episode}: ${outcome}` }, 200);
   } catch (error) {
     console.error(`post-next failed: ${error}`);

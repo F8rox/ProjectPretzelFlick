@@ -3,6 +3,7 @@ import { keys } from './keys.ts';
 import { getSettings, type SettingsStore } from './settings.ts';
 import type { Airing, Stream } from './anilist.ts';
 import { earlierLinks, linkPrevious, loadEpisodes, recordEpisode } from './episodes.ts';
+import type { HistoryEntry } from './history.ts';
 import type { EarlierLink, Poster } from './types.ts';
 
 export const POST_JOB = 'post-episode';
@@ -17,6 +18,8 @@ export type PostStore = SettingsStore & {
 };
 
 export type PostOutcome = 'posted' | 'recovered' | 'duplicate' | 'auto-post-off' | 'too-late';
+
+export type RecordFn = (entry: HistoryEntry) => Promise<void>;
 
 const escapeMd = (text: string) => text.replace(/([\\`*_[\]])/g, '\\$1');
 
@@ -51,18 +54,29 @@ export const parseJobData = (raw: unknown): PostJobData | undefined => {
   return { mediaId: Number(mediaId), episode: Number(episode), airingAt: Number(airingAt), title, streams: clean };
 };
 
-export type PostDeps = { store: PostStore; poster: Poster; nowMs: number };
+export type PostDeps = { store: PostStore; poster: Poster; nowMs: number; record: RecordFn };
 
 /**
  * Posts one episode thread at most once. A `pending` record is written before submitting, so a crash
  * between submit and record is recovered by finding the thread by title instead of posting again.
  * shortcut: two runs racing on the same episode can both see `pending` and both post, upgrade if jobs can overlap.
  */
-export const postEpisode = async ({ store, poster, nowMs }: PostDeps, job: PostJobData): Promise<PostOutcome> => {
-  if (!(await getSettings(store)).autoPostEnabled) return 'auto-post-off';
-  if (nowMs - job.airingAt * 1000 > config.latenessLimitHours * 3_600_000) return 'too-late';
+export const postEpisode = async ({ store, poster, nowMs, record }: PostDeps, job: PostJobData): Promise<PostOutcome> => {
+  const { mediaId, episode } = job;
+  const note = (type: HistoryEntry['type'], reason: string) => record({ type, mediaId, episode, reason, at: nowMs });
+  if (!(await getSettings(store)).autoPostEnabled) {
+    await note('skipped', 'auto-post is off');
+    return 'auto-post-off';
+  }
+  if (nowMs - job.airingAt * 1000 > config.latenessLimitHours * 3_600_000) {
+    await note('skipped', `aired more than ${config.latenessLimitHours} hours ago`);
+    return 'too-late';
+  }
   const key = keys.posted(job.mediaId, job.episode);
-  if ((await store.hGet(key, 'state')) === 'posted') return 'duplicate';
+  if ((await store.hGet(key, 'state')) === 'posted') {
+    await note('skipped', 'already posted');
+    return 'duplicate';
+  }
 
   const title = renderTitle(job.title, job.episode);
   const entries = await loadEpisodes(store, job.mediaId);
@@ -73,8 +87,21 @@ export const postEpisode = async ({ store, poster, nowMs }: PostDeps, job: PostJ
   // The table entry is written before the posted record, so a crash between them is repaired by the recovery path.
   await recordEpisode(store, job.mediaId, job.episode, thread, nowMs);
   await store.hSet(key, { state: 'posted', postId: thread.id, permalink: thread.permalink, at: String(nowMs) });
-  await linkPrevious({ store, poster }, job.mediaId, job.episode, thread, entries);
+  await note('posted', outcome === 'recovered' ? `recovered after an interrupted run: ${thread.permalink}` : thread.permalink);
+  if ((await linkPrevious({ store, poster }, job.mediaId, job.episode, thread, entries)) === 'locked') {
+    await record({ type: 'failed', mediaId, episode: episode - 1, reason: 'could not add the next-episode link (thread may be archived)', at: nowMs });
+  }
   return outcome;
+};
+
+/** Runs one posting job. A failure is recorded for mods instead of being thrown. */
+export const runPostJob = async (deps: PostDeps, job: PostJobData): Promise<PostOutcome | 'failed'> => {
+  try {
+    return await postEpisode(deps, job);
+  } catch (error) {
+    await deps.record({ type: 'failed', mediaId: job.mediaId, episode: job.episode, reason: `${error}`.slice(0, 200), at: deps.nowMs });
+    return 'failed';
+  }
 };
 
 /** The earliest airing that has no posted record, for the "Post next episode now" mod action. */

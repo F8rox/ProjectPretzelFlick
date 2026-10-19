@@ -29,6 +29,13 @@
         "endpoint": "/internal/menu/sync-now"
       },
       {
+        "label": "PretzelFlick: recent activity",
+        "description": "What was posted, skipped, or failed",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/activity-open"
+      },
+      {
         "label": "PretzelFlick: post next episode now",
         "description": "Post the next tracked episode without waiting for its job",
         "location": "subreddit",
@@ -66,6 +73,7 @@
   },
   "forms": {
     "trackedForm": "/internal/form/tracked-submit",
-    "settingsForm": "/internal/form/settings-submit"
+    "settingsForm": "/internal/form/settings-submit",
+    "activityForm": "/internal/form/activity-submit"
   }
 }

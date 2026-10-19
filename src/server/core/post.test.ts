@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { findNextUnposted, parseJobData, postEpisode, renderBody, renderTitle, type PostJobData, type PostStore, type Poster } from './post.ts';
+import { findNextUnposted, parseJobData, postEpisode, runPostJob, renderBody, renderTitle, type PostJobData, type PostStore, type Poster } from './post.ts';
 import type { Airing } from './anilist.ts';
+import type { HistoryEntry } from './history.ts';
 
 const NOW = Date.UTC(2026, 9, 18, 12, 0, 0);
 const job = (over: Partial<PostJobData> = {}): PostJobData => ({
@@ -50,7 +51,9 @@ const setup = () => {
       if (t) t.text = text;
     },
   };
-  return { store, poster, threads, edits, failEdit, flags, h, deps: { store, poster, nowMs: NOW } };
+  const records: HistoryEntry[] = [];
+  const record = async (e: HistoryEntry) => void records.push(e);
+  return { store, poster, threads, edits, failEdit, flags, h, records, deps: { store, poster, nowMs: NOW, record } };
 };
 
 test('title has only the show title and episode number', () => {
@@ -172,4 +175,34 @@ test('shows never share links: another season (media id) starts its own table', 
   await postEpisode(t.deps, job({ mediaId: 8, episode: 2 }));
   assert.doesNotMatch(t.threads[1]!.text, /\| 1 \|/);
   assert.deepEqual(t.edits, []);
+});
+
+test('every post, skip, and failure writes one history entry with a reason', async () => {
+  const t = setup();
+  await postEpisode(t.deps, ep(1));
+  await postEpisode(t.deps, ep(1));
+  t.h('config').set('autoPostEnabled', 'false');
+  await postEpisode(t.deps, ep(2));
+  t.h('config').set('autoPostEnabled', 'true');
+  await postEpisode(t.deps, job({ episode: 9, airingAt: Math.floor(NOW / 1000) - 30 * 3600 }));
+  assert.deepEqual(t.records.map((r) => [r.type, r.episode]), [['posted', 1], ['skipped', 1], ['skipped', 2], ['skipped', 9]]);
+  assert.ok(t.records.every((r) => r.reason.length > 0 && r.mediaId === 7));
+});
+
+test('runPostJob records a failure instead of throwing', async () => {
+  const t = setup();
+  t.poster.submit = async () => {
+    throw new Error('reddit down');
+  };
+  assert.equal(await runPostJob(t.deps, ep(1)), 'failed');
+  assert.deepEqual(t.records.map((r) => [r.type, r.episode]), [['failed', 1]]);
+  assert.match(t.records[0]!.reason, /reddit down/);
+});
+
+test('a failed next-episode edit is recorded against the previous episode', async () => {
+  const t = setup();
+  await postEpisode(t.deps, ep(1));
+  t.failEdit.add('t3_1');
+  await postEpisode(t.deps, ep(2));
+  assert.deepEqual(t.records.map((r) => [r.type, r.episode]), [['posted', 1], ['posted', 2], ['failed', 1]]);
 });

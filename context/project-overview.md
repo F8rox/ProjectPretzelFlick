@@ -93,7 +93,7 @@ Work on Phase 1 only until its success criteria pass. Phase 2 and 3 items are no
 1. A mod can install the app and add a tracked show from the form.
 2. A tracked episode produces exactly one thread, at its air time within one scheduler interval.
 3. Running the same job twice, or crashing between submit and record, never produces a second thread.
-4. A delayed episode moves its scheduled job, and a skipped week appears in the activity history.
+4. A delayed episode moves its scheduled job, and delays, episodes AniList drops, skips, and failures appear in the activity history. A break the app cannot see in AniList's data is not reported.
 5. Each thread shows the earlier-episode table within the 50-link window, and the previous thread gains one "next" link.
 6. A failed edit on an archived thread is recorded as locked and does not stop new posts.
 7. The activity history shows posted, skipped, and failed items with reasons.

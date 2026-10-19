@@ -1,7 +1,7 @@
 import { config } from './config.ts';
 import { keys } from './keys.ts';
 import type { Airing } from './anilist.ts';
-import { POST_JOB, toJobData, type PostJobData } from './post.ts';
+import { POST_JOB, toJobData, type PostJobData, type RecordFn } from './post.ts';
 import { listShows, type TrackedStore } from './tracked.ts';
 import { getSettings, type SettingsStore } from './settings.ts';
 
@@ -21,6 +21,7 @@ export type SyncDeps = {
   scheduler: JobScheduler;
   fetchAiring: (ids: number[], nowMs: number) => Promise<Airing[]>;
   nowMs: number;
+  record: RecordFn;
 };
 
 export type SyncSummary = { scheduled: number; moved: number; cancelled: number; queued: number };
@@ -48,7 +49,7 @@ const parseEntries = (raw: Record<string, string>) =>
  * Brings scheduled jobs in line with AniList: one job per upcoming episode, moved when the air time
  * changes, cancelled when the show or episode is gone. Fetches first, so a failure changes nothing.
  */
-export const reconcile = async ({ store, scheduler, fetchAiring, nowMs }: SyncDeps): Promise<SyncSummary> => {
+export const reconcile = async ({ store, scheduler, fetchAiring, nowMs, record }: SyncDeps): Promise<SyncSummary> => {
   const summary: SyncSummary = { scheduled: 0, moved: 0, cancelled: 0, queued: 0 };
   const tracked = await listShows(store);
   const airings = await fetchAiring(tracked, nowMs);
@@ -78,6 +79,8 @@ export const reconcile = async ({ store, scheduler, fetchAiring, nowMs }: SyncDe
     else if (!isTracked || (!wanted.has(field) && entry.runAt <= horizonMs)) {
       await drop(field, entry);
       summary.cancelled++;
+      const [mediaId, episode] = field.split(':').map(Number);
+      if (isTracked) await record({ type: 'skipped', mediaId, episode, reason: 'no longer on the AniList schedule', at: nowMs });
     }
   }
 
@@ -93,11 +96,16 @@ export const reconcile = async ({ store, scheduler, fetchAiring, nowMs }: SyncDe
     if (current && current.runAt > nowMs) {
       await scheduler.cancelJob(current.jobId);
       summary.moved++;
+      const iso = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ');
+      await record({ type: 'delayed', mediaId: airing.mediaId, episode: airing.episode, reason: `air time moved from ${iso(current.runAt)} to ${iso(runAt)} UTC`, at: nowMs });
     } else summary.scheduled++;
     await schedule(field, airing, runAt);
   }
 
   // Aired within the lateness limit and not yet posted: queue now. Dedup at post time keeps this safe to repeat.
+  for (const airing of late.slice(config.maxPostsPerRun)) {
+    await record({ type: 'skipped', mediaId: airing.mediaId, episode: airing.episode, reason: 'over the per-run posting cap', at: nowMs });
+  }
   for (const airing of late.slice(0, config.maxPostsPerRun)) {
     if (await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) continue;
     await schedule(keys.scheduleField(airing.mediaId, airing.episode), airing, nowMs + config.catchUpDelayMs);

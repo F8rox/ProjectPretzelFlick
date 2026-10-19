@@ -17,6 +17,8 @@ export const config = {
   scheduleHorizonHours: 48,
   /** Newest history entries kept. */
   historyLength: 200,
+  /** Entries shown by "Recent activity". */
+  historyShown: 20,
   /** Hard cap on threads posted by one sync run. */
   maxPostsPerRun: 10,
   /** Minimum votes before an episode average is shown (Phase 2). */

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { reconcile, type JobScheduler, type ScheduleStore } from './schedule.ts';
 import type { Airing } from './anilist.ts';
+import type { HistoryEntry } from './history.ts';
 
 const NOW = Date.UTC(2026, 9, 18, 12, 0, 0);
 const HOUR = 3_600_000;
@@ -32,9 +33,10 @@ const setup = (airings: Airing[] | Error, tracked: number[] = [1]) => {
     cancelJob: async (id) => void jobs.delete(id),
   };
   const state = { airings };
+  const records: HistoryEntry[] = [];
   const run = (nowMs = NOW) =>
-    reconcile({ store, scheduler, nowMs, fetchAiring: async () => { if (state.airings instanceof Error) throw state.airings; return state.airings; } });
-  return { store, jobs, state, run, h };
+    reconcile({ store, scheduler, nowMs, record: async (e) => void records.push(e), fetchAiring: async () => { if (state.airings instanceof Error) throw state.airings; return state.airings; } });
+  return { store, jobs, state, run, h, records };
 };
 
 test('one job per upcoming episode, and a second run adds none', async () => {
@@ -90,4 +92,25 @@ test('the posts-per-run cap limits catch-up posts', async () => {
   const late = Array.from({ length: 12 }, (_, i) => air(1, i + 1, -2));
   const t = setup(late);
   assert.equal((await t.run()).queued, 10);
+});
+
+test('a moved air time is recorded once across repeated syncs', async () => {
+  const t = setup([air(1, 5, 2)]);
+  await t.run();
+  t.state.airings = [air(1, 5, 4)];
+  await t.run();
+  await t.run();
+  assert.deepEqual(t.records.map((r) => r.type), ['delayed']);
+  assert.match(t.records[0]!.reason, /moved from .* to .* UTC/);
+});
+
+test('an episode dropped from AniList and episodes over the cap are recorded as skipped', async () => {
+  const t = setup([air(1, 5, 2)]);
+  await t.run();
+  t.state.airings = [];
+  await t.run();
+  assert.deepEqual(t.records.map((r) => [r.type, r.episode]), [['skipped', 5]]);
+  const capped = setup(Array.from({ length: 12 }, (_, i) => air(1, i + 1, -2)));
+  await capped.run();
+  assert.equal(capped.records.filter((r) => r.type === 'skipped').length, 2);
 });

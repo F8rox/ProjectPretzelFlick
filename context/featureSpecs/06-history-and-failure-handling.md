@@ -13,7 +13,7 @@ Units 03 to 05.
 ## Build
 
 - `history.ts`: `record(store, entry)` writes `{type, mediaId, episode, reason}` to the `history` sorted set with the timestamp as score and trims to the newest entries from `config.ts`.
-- Record `posted`, `skipped` (auto-post off, over the lateness limit, over the posts-per-run cap, duplicate), and `failed` (AniList error, invalid data, submit error, edit error) with a short reason.
+- Record `posted`, `skipped` (auto-post off, a job that ran more than the lateness limit after air time, over the posts-per-run cap, duplicate, an episode AniList dropped from its schedule), and `failed` (AniList error, invalid data, submit error, edit error) with a short reason.
 - Mod-only menu item "Recent activity" that shows the newest entries as a form or toast list.
 - Delay and break handling: when AniList moves or removes an episode, record `skipped` or `delayed` once, not on every sync.
 - Replace the `console.error` placeholders from earlier units with `record`.

@@ -4,7 +4,7 @@ This tracker records verified evidence only. Statuses are not copied from earlie
 
 ## Current Phase
 
-Phase 1: Anime core. Unit 01 is done pending one live check. Units 02 to 05 are done pending live checks. Units 06 and 07 are not started.
+Phase 1: Anime core. Unit 01 is done pending one live check. Units 02 to 06 are done pending live checks. Unit 07 (hardening and release) is not started.
 
 ## Current Goal
 
@@ -22,6 +22,9 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - [x] Unit 03, 2026-10-18: `core/anilist.ts` (one batched query, response validation, timeout, one retry, `USE_FIXTURE`), `core/schedule.ts` (`reconcile`), `routes/sync.ts`, daily cron task `daily-sync`, one-off task `post-episode`, mod menu "check now", and a sync after tracked-show changes. Evidence: 16 unit tests pass, covering one job per episode, idempotent rerun, moved air time, cancelled show and removed episode, malformed or failed fetch changing nothing, catch-up queue inside and outside the lateness limit, posted episodes skipped, and the post-delay setting. `npm run test:types`, ESLint, `npm run build` pass, and `devvit.json` endpoints and cron match the Devvit config schema.
 - [x] Unit 04, 2026-10-19: `core/post.ts` (`renderTitle`, `renderBody`, `postEpisode` with two-phase dedup and recovery by title, `parseJobData`, `findNextUnposted`), `routes/poster.ts` (Devvit-backed `Poster`, recovery matches only the app's own posts), `post-episode` job handler, and the mod action "post next episode now" replacing the MOCK test item. AniList now also returns official streaming links (https only). Evidence: `core/post.test.ts` (8 tests: title, body and escaping, double run posts once, crash between submit and record recovers without a second post, failed submit retries, auto-post off, too-late, payload validation, next-unposted pick) plus the cap test in `schedule.test.ts`. 25 unit tests, type-check, ESLint, build pass.
 - [x] Unit 05, 2026-10-19: `core/episodes.ts` rewritten (`windowFor`, `loadEpisodes`, `earlierLinks`, `recordEpisode`, `linkPrevious`). The old loop that edited every earlier thread and its `hExists` use are gone, which also fixes the `hExists` problem recorded above. `postEpisode` loads the table before submitting, writes the table entry before the posted record, then makes exactly one edit, to episode N-1. A failed edit sets that entry `locked` and is never retried. Evidence: `episodes.test.ts` (window table, earlier links), `post.test.ts` (one edit per episode, table contents, failed edit locks and is not retried, missing previous episode, recovered post is linked, separate media IDs do not share links). 30 unit tests, type-check, ESLint, build pass.
+- [x] Unit 06, 2026-10-19: `core/history.ts` (`record` never throws, trims to `historyLength`; `recent`, `describeEntry`). `postEpisode` records every post, skip, and locked edit through an injected `record`; `runPostJob` records a failure instead of throwing; `reconcile` records `delayed` (once, at the moment the job moves), episodes dropped from AniList, and episodes over the per-run cap; `routes/sync.ts` records a failed sync. Mod-only menu item "recent activity" shows the newest 20. The `console.error` placeholders from Units 03 and 04 are gone. Evidence: `history.test.ts` (4 tests), history cases in `post.test.ts` and `schedule.test.ts`. 39 unit tests, type-check, ESLint, build pass.
+- [ ] Unit 06 live check: "recent activity" lists the entries from the earlier live checks, newest first. Blocked on input.
+- [ ] Not unit-tested: the route wiring in `routes/sync.ts` that records a failed sync, and the menu and form handlers. They are thin and are covered by the live checks.
 - [ ] Unit 05 live check: post two consecutive episodes on `r/pretzelflick_dev2` and confirm the "Next episode" line on the first and the table on the second. Blocked on input.
 - [ ] Unit 04 live check: "post next episode now" posts one thread on `r/pretzelflick_dev2` and a second click reports duplicate. Blocked on input.
 - [ ] Unit 03 live fetch from Devvit. Blocked on input: AniList domain approval, then set `USE_FIXTURE = false`.
@@ -39,7 +42,7 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 | 03   | AniList client and scheduling     | Done pending input (domain approval, live check) |
 | 04   | Thread posting and dedup          | Done pending input (live post check)     |
 | 05   | Episode links and next edit       | Done pending input (live post check)     |
-| 06   | History and failure handling      | Not started                              |
+| 06   | History and failure handling      | Done pending input (live check)          |
 | 07   | Hardening and release             | Not started                              |
 | 08   | Season Hub spike (Phase 2)        | Not started                              |
 | 09   | Ratings and season chart (Phase 2)| Not started                              |
@@ -49,7 +52,7 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 | Input                                   | Where                                         | Unblocks                                  |
 | --------------------------------------- | --------------------------------------------- | ----------------------------------------- |
 | AniList domain approval                 | developers.reddit.com app, Developer Settings | Unit 03 live fetch, Unit 04 real data     |
-| Run `npm run dev`, confirm the menu items, both forms, "check now", "post next episode now" (twice), and the `post-episode` log | `r/pretzelflick_dev2` | Unit 01 to 04 live checks |
+| Run `npm run dev`, confirm the menu items, both forms, "check now", "post next episode now" (twice), post two consecutive episodes, "recent activity", and the `post-episode` log | `r/pretzelflick_dev2` | Unit 01 to 06 live checks |
 | Fetch Domains README section reviewed   | `README.md`                                   | Unit 07 review submission                 |
 | A real subreddit to install on          | Mods of 2-3 anime subs                        | Success criterion 9                       |
 
@@ -73,6 +76,7 @@ Clean up the starter (Unit 01), then build tracked shows (02), the AniList clien
 - D8. Redis history is a sorted set of JSON entries, newest 200 kept. The tracked set holds plain AniList media IDs.
 - D10. `react`, `react-dom`, Tailwind and their Vite plugins stay installed although Phase 1 has no client. Unit 09 (Phase 2) needs them. Revisit if Phase 2 is dropped.
 - D11. `tools/tsconfig.server.json` sets `rewriteRelativeImportExtensions` so source files can import `./x.ts`, which `node --test` requires, while `tsc --build` still passes.
+- D16. History is written by core code through an injected `record` function, so tests can assert exact entries. A break that AniList does not report (a week with no episode) is not visible to the app and is not recorded.
 - D15. AniList media ID = one season, so the episodes hash is `episodes:{mediaId}` with no season in the key. The `frozen` status was dropped: with a single edit to the previous thread it could never be set. `locked` is the only non-active status.
 - D14. A job's payload carries the title, air time, and streaming links, so the posting job needs no AniList call. Links changed after scheduling reach the thread only if the air time also changes.
 - D13. The `schedule` key is a hash (`{mediaId}:{episode}` to `{jobId, runAt}`) because Devvit Redis cannot scan string keys to cancel jobs for removed shows. Catch-up posts run `catchUpDelayMs` after the sync.
