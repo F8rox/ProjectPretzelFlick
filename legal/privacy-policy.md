@@ -31,4 +31,4 @@ If the app starts handling more data (for example, if it later adds per-user rat
 
 ## Contact
 
-[Add your contact here: a Reddit username or an email address.]
+Email: 02dramatic@gmail.com

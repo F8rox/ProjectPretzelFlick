@@ -36,4 +36,4 @@ How the app handles data is described in the [Privacy Policy](privacy-policy.md)
 
 ## Contact
 
-[Add your contact here: a Reddit username or an email address.]
+Email: 02dramatic@gmail.com
