@@ -32,12 +32,12 @@ All keys live inside one subreddit's isolated install. Devvit scopes Redis per i
 | `config`                               | Hash       | `autoPostEnabled`, `postDelayMinutes`                                  | Per-install settings read by every job       |
 | `tracked`                              | Hash       | field = AniList media ID, value = time added (ms)                      | Shows this install tracks                    |
 | `posted:{mediaId}:{episode}`           | Hash       | `state` (pending or posted), `postId`, `permalink`, `at`               | Two-phase dedup, episode to thread lookup    |
-| `series:{mediaId}:season:{s}:episodes` | Hash       | field = episode, value = `{postId, permalink, postedAt, status}`       | Earlier-episode table, 50-link window        |
+| `episodes:{mediaId}`                   | Hash       | field = episode, value = `{postId, permalink, postedAt, status}`       | Earlier-episode table, 50-link window        |
 | `schedule`                             | Hash       | field = `{mediaId}:{episode}`, value = JSON `{jobId, runAt}`           | Cancel and recreate when an air time moves   |
 | `history`                              | Sorted set | score = timestamp, member = JSON `{type, mediaId, episode, reason}`    | Mod-visible activity, newest 200 kept        |
 | `rating:{mediaId}:{episode}` (Phase 2) | Hash       | field = userId, value = score 1 to 5                                   | One vote per user, re-votes overwrite        |
 
-The `status` on an episode entry is `active`, `frozen` (outside the current window), or `locked` (an edit failed, most likely because the thread is archived).
+AniList gives every season its own media ID, so one `episodes:{mediaId}` hash is one season and links can never cross seasons. The `status` on an episode entry is `active`, or `locked` when the edit that adds its "next episode" link failed (most likely because the thread is archived).
 
 Devvit's Redis client has no set commands (`sAdd`, `sMembers`) and no `hExists`. Use a hash with `hSetNX`, `hDel`, and `hKeys` for sets, and `hGet !== undefined` or `hSetNX` for existence checks. Checked against `@devvit/redis` 0.14 types.
 

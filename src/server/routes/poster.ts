@@ -1,6 +1,13 @@
 import { context, reddit } from '@devvit/web/server';
 import { config } from '../core/config';
-import type { Poster } from '../core/post';
+import type { Poster } from '../core/types';
+
+type PostId = Parameters<typeof reddit.getPostById>[0];
+
+const toT3 = (id: string): PostId => {
+  if (!id.startsWith('t3_')) throw new Error(`Not a post id: ${id}`);
+  return `t3_${id.slice(3)}`;
+};
 
 const fullUrl = (permalink: string) => `https://www.reddit.com${permalink}`;
 
@@ -19,4 +26,6 @@ export const poster: Poster = {
     const post = recent.find((p) => p.title === title && p.authorName === app?.username);
     return post && { id: post.id, permalink: fullUrl(post.permalink) };
   },
+  getBody: async (postId) => (await reddit.getPostById(toT3(postId))).body ?? '',
+  editBody: async (postId, text) => (await reddit.getPostById(toT3(postId))).edit({ text }),
 };

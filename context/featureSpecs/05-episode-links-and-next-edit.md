@@ -12,12 +12,11 @@ Unit 04.
 
 ## Build
 
-- Rework `episodes.ts`: keep `windowFor` and the `series:{mediaId}:season:{s}:episodes` hash. Remove the loop that edits every in-window earlier thread.
+- Rework `episodes.ts`: keep `windowFor` and the per-show episodes hash `episodes:{mediaId}`. Remove the loop that edits every in-window earlier thread.
 - Record each posted episode in the season hash with status `active`.
 - Add the earlier-episode table to the new thread's body: episodes inside `windowFor(ep)`, excluding the thread itself, sorted by episode, as `Episode | Link` rows.
 - After posting, edit only episode `ep - 1`'s thread to put `**Next episode:** [Episode N](permalink)` at the top. If that edit fails, set `ep - 1` to `locked` and continue. Never retry a locked edit.
-- A thread outside its own window is marked `frozen` and left alone.
-- Seasons are separate hashes. Links never cross a season boundary. Use the AniList season data; if it is missing, record the episode as season 1 and note it in the tracker.
+- AniList gives each season its own media ID, so one hash is one season. Links never cross a season because shows have separate hashes.
 
 ## Not In This Unit
 
@@ -29,7 +28,7 @@ Editing older threads, history storage, ratings.
 - [ ] A new thread's table contains only episodes in its window and never itself.
 - [ ] Posting episode N edits exactly one earlier thread (N-1), never more.
 - [ ] A failed edit marks N-1 `locked`, does not block the new post, and is not retried.
-- [ ] A new season starts a fresh hash with no links to the old season.
+- [ ] A different media ID (another season) starts its own table with no links to the first.
 - [ ] Tests cover the window table, the single edit, a failed edit, and a season change.
 
 ## Verify

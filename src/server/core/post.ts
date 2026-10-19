@@ -2,6 +2,8 @@ import { config } from './config.ts';
 import { keys } from './keys.ts';
 import { getSettings, type SettingsStore } from './settings.ts';
 import type { Airing, Stream } from './anilist.ts';
+import { earlierLinks, linkPrevious, loadEpisodes, recordEpisode } from './episodes.ts';
+import type { EarlierLink, Poster } from './types.ts';
 
 export const POST_JOB = 'post-episode';
 
@@ -14,20 +16,11 @@ export type PostStore = SettingsStore & {
   hGet(key: string, field: string): Promise<string | undefined>;
 };
 
-export type PostedThread = { id: string; permalink: string };
-
-export type Poster = {
-  submit(title: string, text: string): Promise<PostedThread>;
-  findByTitle(title: string): Promise<PostedThread | undefined>;
-};
-
 export type PostOutcome = 'posted' | 'recovered' | 'duplicate' | 'auto-post-off' | 'too-late';
 
 const escapeMd = (text: string) => text.replace(/([\\`*_[\]])/g, '\\$1');
 
 export const renderTitle = (title: string, episode: number) => `${title} - Episode ${episode} discussion`;
-
-export type EarlierLink = { episode: number; permalink: string };
 
 export const renderBody = (job: PostJobData, earlier: EarlierLink[]) => {
   const streams = job.streams.length ? job.streams.map((s) => `- [${escapeMd(s.site)}](${s.url})`).join('\n') : '*None listed.*';
@@ -72,11 +65,15 @@ export const postEpisode = async ({ store, poster, nowMs }: PostDeps, job: PostJ
   if ((await store.hGet(key, 'state')) === 'posted') return 'duplicate';
 
   const title = renderTitle(job.title, job.episode);
+  const entries = await loadEpisodes(store, job.mediaId);
   const claimed = await store.hSetNX(key, 'state', 'pending');
   let thread = claimed ? undefined : await poster.findByTitle(title);
   const outcome: PostOutcome = thread ? 'recovered' : 'posted';
-  thread ??= await poster.submit(title, renderBody(job, []));
+  thread ??= await poster.submit(title, renderBody(job, earlierLinks(entries, job.episode)));
+  // The table entry is written before the posted record, so a crash between them is repaired by the recovery path.
+  await recordEpisode(store, job.mediaId, job.episode, thread, nowMs);
   await store.hSet(key, { state: 'posted', postId: thread.id, permalink: thread.permalink, at: String(nowMs) });
+  await linkPrevious({ store, poster }, job.mediaId, job.episode, thread, entries);
   return outcome;
 };
 

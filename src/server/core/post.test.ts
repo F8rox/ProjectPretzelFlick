@@ -31,6 +31,8 @@ const setup = () => {
     hGetAll: async (k) => Object.fromEntries(h(k)),
   };
   const threads: { title: string; text: string; id: string }[] = [];
+  const edits: string[] = [];
+  const failEdit = new Set<string>();
   const poster: Poster = {
     submit: async (title, text) => {
       threads.push({ title, text, id: `t3_${threads.length + 1}` });
@@ -40,8 +42,15 @@ const setup = () => {
       const t = threads.find((x) => x.title === title);
       return t && { id: t.id, permalink: `https://reddit.com/${t.id}` };
     },
+    getBody: async (id) => threads.find((x) => x.id === id)?.text ?? '',
+    editBody: async (id, text) => {
+      if (failEdit.has(id)) throw new Error('archived');
+      edits.push(id);
+      const t = threads.find((x) => x.id === id);
+      if (t) t.text = text;
+    },
   };
-  return { store, poster, threads, flags, h, deps: { store, poster, nowMs: NOW } };
+  return { store, poster, threads, edits, failEdit, flags, h, deps: { store, poster, nowMs: NOW } };
 };
 
 test('title has only the show title and episode number', () => {
@@ -108,4 +117,59 @@ test('findNextUnposted picks the earliest episode without a thread', async () =>
   const next = await findNextUnposted(t.store, [air(1, 2, 300), air(1, 1, 100), air(2, 1, 200)]);
   assert.deepEqual([next?.mediaId, next?.episode], [2, 1]);
   assert.equal(await findNextUnposted(t.store, []), undefined);
+});
+
+const ep = (episode: number) => job({ episode });
+
+test('posting an episode edits exactly one older thread, the previous one', async () => {
+  const t = setup();
+  for (const n of [1, 2, 3, 4]) await postEpisode(t.deps, ep(n));
+  assert.deepEqual(t.edits, ['t3_1', 't3_2', 't3_3']);
+  assert.match(t.threads[0]!.text, /^\*\*Next episode:\*\* \[Episode 2\]\(https:\/\/reddit.com\/2\)/);
+});
+
+test('each new thread carries a table of earlier threads but never itself', async () => {
+  const t = setup();
+  for (const n of [1, 2, 3]) await postEpisode(t.deps, ep(n));
+  const third = t.threads[2]!.text;
+  assert.match(third, /\| 1 \| \[Link\]\(https:\/\/reddit.com\/1\) \|/);
+  assert.match(third, /\| 2 \| \[Link\]\(https:\/\/reddit.com\/2\) \|/);
+  assert.doesNotMatch(third, /\| 3 \|/);
+});
+
+test('a failed edit locks the previous thread, does not block the new post, and is not retried', async () => {
+  const t = setup();
+  await postEpisode(t.deps, ep(1));
+  t.failEdit.add('t3_1');
+  assert.equal(await postEpisode(t.deps, ep(2)), 'posted');
+  assert.equal(JSON.parse(t.h('episodes:7').get('1')!).status, 'locked');
+  await postEpisode(t.deps, ep(3));
+  assert.equal(t.edits.includes('t3_1'), false);
+  assert.deepEqual(t.edits, ['t3_2']);
+});
+
+test('a missing previous episode means no edit', async () => {
+  const t = setup();
+  await postEpisode(t.deps, ep(1));
+  await postEpisode(t.deps, ep(3));
+  assert.deepEqual(t.edits, []);
+});
+
+test('a recovered post is still recorded and linked from the previous thread', async () => {
+  const t = setup();
+  await postEpisode(t.deps, ep(1));
+  t.flags.failNextRecord = true;
+  await assert.rejects(() => postEpisode(t.deps, ep(2)));
+  assert.equal(await postEpisode(t.deps, ep(2)), 'recovered');
+  assert.equal(t.threads.length, 2);
+  assert.ok(t.h('episodes:7').has('2'));
+  assert.equal(t.edits.filter((id) => id === 't3_1').length, 1);
+});
+
+test('shows never share links: another season (media id) starts its own table', async () => {
+  const t = setup();
+  await postEpisode(t.deps, ep(1));
+  await postEpisode(t.deps, job({ mediaId: 8, episode: 2 }));
+  assert.doesNotMatch(t.threads[1]!.text, /\| 1 \|/);
+  assert.deepEqual(t.edits, []);
 });
