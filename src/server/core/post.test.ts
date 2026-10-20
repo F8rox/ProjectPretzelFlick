@@ -90,6 +90,13 @@ test('YouTube links are never listed as streams, and a show with only YouTube li
   assert.match(renderBody(job({ streams: [{ site: 'Notyoutube', url: 'https://notyoutube.com/x' }] }), []), /notyoutube\.com/);
 });
 
+test('hosts that Reddit rejects as banned domains are never listed, so a post cannot be removed for them', () => {
+  const body = renderBody(job({ streams: [{ site: 'iQIYI', url: 'https://www.iqiyi.com/v_abc.html?v' }, { site: 'Crunchyroll', url: 'https://crunchyroll.com/x' }] }), []);
+  assert.doesNotMatch(body, /iqiyi/i);
+  assert.match(body, /Crunchyroll/);
+  assert.match(renderBody(job({ streams: [{ site: 'iQIYI', url: 'https://www.iqiyi.com/v_abc.html?v' }] }), []), /\*None listed\.\*/);
+});
+
 test('running the job twice posts once', async () => {
   const t = setup();
   assert.equal(await postEpisode(t.deps, job()), 'posted');

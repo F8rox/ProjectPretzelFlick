@@ -11,8 +11,8 @@ export const config = {
   defaultInteractive: true,
   defaultPostDelayMinutes: 0,
   maxPostDelayMinutes: 60,
-  /** Streaming links on these hosts (and their subdomains) are never shown, to keep the list to official releases. */
-  blockedStreamHosts: ['youtube.com', 'youtu.be'],
+  /** Streaming links on these hosts (and their subdomains) are never shown: YouTube, to keep to official releases, and hosts Reddit's spam filter rejects. */
+  blockedStreamHosts: ['youtube.com', 'youtu.be', 'iqiyi.com'], // iqiyi.com got a live thread removed as a "Banned Domain" on 2026-10-20
   /** Links per thread are limited to this many before the window slides. */
   linkWindowSize: 50,
   /** An aired episode with no post is still posted if it aired within this many hours. */
