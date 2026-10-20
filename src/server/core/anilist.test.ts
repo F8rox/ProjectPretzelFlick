@@ -17,15 +17,17 @@ test('parseAiring rejects malformed responses', () => {
 });
 
 test('the fixture is only ever used on the dev subreddit', () => {
-  assert.equal(shouldUseFixture('pretzelflick_dev2'), true);
-  assert.equal(shouldUseFixture('Pretzelflick_Dev2'), true);
-  assert.equal(shouldUseFixture('anime'), false);
-  assert.equal(shouldUseFixture(''), false);
-  config.fixtureOnDevSubreddit = false;
+  const original = config.fixtureOnDevSubreddit;
   try {
+    config.fixtureOnDevSubreddit = true;
+    assert.equal(shouldUseFixture('pretzelflick_dev2'), true);
+    assert.equal(shouldUseFixture('Pretzelflick_Dev2'), true);
+    assert.equal(shouldUseFixture('anime'), false);
+    assert.equal(shouldUseFixture(''), false);
+    config.fixtureOnDevSubreddit = false;
     assert.equal(shouldUseFixture('pretzelflick_dev2'), false);
   } finally {
-    config.fixtureOnDevSubreddit = true;
+    config.fixtureOnDevSubreddit = original;
   }
 });
 

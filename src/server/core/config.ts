@@ -3,7 +3,7 @@ export const HOUR_MS = 3_600_000;
 
 export const config = {
   /** MOCK: stand-in AniList data, used only on the dev subreddit below. Set false once Reddit approves graphql.anilist.co. */
-  fixtureOnDevSubreddit: true,
+  fixtureOnDevSubreddit: false,
   /** Must match `dev.subreddit` in devvit.json. The fixture can never run anywhere else. */
   devSubreddit: 'pretzelflick_dev2',
   /** Mod settings defaults and limits. */
