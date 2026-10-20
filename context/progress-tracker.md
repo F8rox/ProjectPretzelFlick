@@ -49,6 +49,17 @@ Evidence I saw myself is marked (seen). Evidence the user reported is marked (re
 - [x] 2026-10-20 live check of the manual-post and history changes (playtest v0.0.3.18; user ran all 7 steps and sent a screenshot, seen): with auto-post off the scheduled catch-up recorded `skipped show 207191 ep 3: auto-post is off`; "post next episode now" then posted the thread anyway; a repeat attempt recorded `skipped … already posted`; the "recent activity" box shows about 8 entries at once (`config.historyBoxLines`). YouTube filtering has a unit test but was not seen on a real thread (the show had no YouTube link).
 - [ ] Terms and Privacy form: saved (the links show on the app page).
 
+## Unit 08 Spike Results (2026-10-20, playtest v0.0.3.20, screenshots seen)
+
+- [x] An interactive custom post renders in the feed with working 1 to 5 buttons.
+- [x] The server sees the viewer: `context.userId` is set (the page showed "Server sees a logged-in user: true").
+- [x] Voting works and re-voting replaces the old vote (count 1, average 5.00, your vote 5). Votes are stored per user in a Redis hash.
+- [x] Normal comments work under the custom post (a comment was posted and shown with its own vote and Reply controls).
+- [ ] Old Reddit shows the text fallback: not yet checked.
+- [ ] Mobile app rendering: not yet checked.
+- Finding: in the new Reddit feed a custom post shows only its web view, not the post text. If an episode thread itself became the custom post, the streams list, earlier-episode table, and spoiler reminder would have to be drawn inside the web view, with the same text kept as `textFallback` for old Reddit and third-party apps. The default frame is a tall white box and needs a compact, theme-aware card.
+- Decision pending: ratings inside every thread (thread becomes a custom post) versus one Season Hub post per show linked from plain-text threads.
+
 ## Unit 07: Hardening And Release (2026-10-19)
 
 Security checklist, every item run against the final code:
