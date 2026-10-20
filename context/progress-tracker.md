@@ -45,6 +45,7 @@ Evidence I saw myself is marked (seen). Evidence the user reported is marked (re
 - [x] After the fix, the user confirmed (reported): the repeat "check now" reports 0 queued and 0 cancelled, there is exactly one thread per episode, the threads show the earlier-episode table and the "Next episode" line, and "post next episode now" says nothing to post.
 - [ ] Not yet confirmed: the `daily-sync` cron at 04:00 UTC fires, and the history shows more than one entry (the box is small).
 - [x] 2026-10-20: Reddit approved `graphql.anilist.co`. `config.fixtureOnDevSubreddit` is now `false`. With real AniList data the playtest posted BLEACH: Thousand-Year Blood War ep 9 and PSYREN ep 3 on `pretzelflick_dev2` (seen in the log and a screenshot: real Crunchyroll link under Streams, AniList link, correct air time). The overnight `daily-sync` cron also fired (seen in the log).
+- [x] 2026-10-20 Devvit 0.14.8 live check: on playtest v0.0.3.12 (new packages) adding show 209219 posted episode 4 (aired 15.6h earlier), shown in the playtest log as `post-episode 209219 ep 4: posted`. The follow-up "check now" correctly reported 0 scheduled, 0 moved, 0 cancelled, 0 queued, because adding a show already runs a sync.
 - [ ] Terms and Privacy form: saved (the links show on the app page).
 
 ## Unit 07: Hardening And Release (2026-10-19)
