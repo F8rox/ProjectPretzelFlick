@@ -34,6 +34,7 @@ const scoreText = (r: RatingSummary) => {
   return r.average === null ? `${votes} (average shows after ${r.minVotes})` : `${r.average.toFixed(1)} / 5 from ${votes}`;
 };
 
+// Same sections, in the same order, as the plain-text thread (see renderBody in core/post.ts). Voting comes last.
 const Thread = () => {
   const [view, setView] = useState<ThreadView>();
   const [error, setError] = useState<string>();
@@ -55,10 +56,68 @@ const Thread = () => {
   const { rating } = view;
   return (
     <main className="card">
-      <p className="meta">
-        Episode {view.episode} · Aired {new Date(view.airingAt * 1000).toLocaleString()}
+      {view.next && (
+        <p>
+          <strong>Next episode:</strong> <Link url={view.next.permalink}>{`Episode ${view.next.episode}`}</Link>
+        </p>
+      )}
+      <p>
+        <em>{view.title}</em>, episode {view.episode}
       </p>
-      <p className="reminder">Please do not discuss plot points not yet seen or skipped in the show. Use spoiler formatting in comments for anything beyond this episode.</p>
+      <p>Aired at {new Date(view.airingAt * 1000).toUTCString()}.</p>
+      <p>
+        <strong>Reminder:</strong> Please do not discuss plot points not yet seen or skipped in the show. Use Reddit&apos;s spoiler formatting in comments for anything beyond this episode.
+      </p>
+      <hr />
+      <h3>Streams</h3>
+      {view.streams.length ? (
+        <ul>
+          {view.streams.map((s) => (
+            <li key={s.url}>
+              <Link url={s.url}>{s.site}</Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>
+          <em>None listed.</em>
+        </p>
+      )}
+      <h3>Show information</h3>
+      <ul>
+        <li>
+          <Link url={view.showUrl}>AniList</Link>
+        </li>
+      </ul>
+      <h3>Previous discussion threads</h3>
+      {view.earlier.length ? (
+        <table>
+          <thead>
+            <tr>
+              <th>Episode</th>
+              <th>Link</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {view.earlier.map((e) => (
+              <tr key={e.episode}>
+                <td>{e.episode}</td>
+                <td>
+                  <Link url={e.permalink}>Link</Link>
+                </td>
+                <td>{e.average === null ? '-' : e.average.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p>
+          <em>None yet.</em>
+        </p>
+      )}
+      <hr />
+      <h3>Rate this episode</h3>
       <div className="rate" role="group" aria-label="Rate this episode">
         {SCORES.map((n) => (
           <button key={n} aria-label={`Rate ${n} out of 5`} aria-pressed={rating.myScore === n} onClick={() => void vote(n)}>
@@ -69,26 +128,10 @@ const Thread = () => {
           {scoreText(rating)}
         </span>
       </div>
-      {error && <p className="error" role="alert">{error}</p>}
-      <div className="links">
-        {view.streams.map((s) => (
-          <Link key={s.url} url={s.url}>{s.site}</Link>
-        ))}
-        <Link url={view.showUrl}>AniList</Link>
-        {view.next && <Link url={view.next.permalink}>{`Next: episode ${view.next.episode}`}</Link>}
-      </div>
-      {view.earlier.length > 0 && (
-        <details>
-          <summary>Previous episodes</summary>
-          <ul>
-            {view.earlier.map((e) => (
-              <li key={e.episode}>
-                <Link url={e.permalink}>{`Episode ${e.episode}`}</Link>
-                {e.average !== null && <span className="muted">{` · ${e.average.toFixed(1)}`}</span>}
-              </li>
-            ))}
-          </ul>
-        </details>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
       )}
     </main>
   );

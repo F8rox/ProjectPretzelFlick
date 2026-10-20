@@ -35,20 +35,42 @@ body {
 
 .card {
   padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
-.meta,
-.reminder,
+.card p,
+.card ul,
+.card table {
+  margin: 0 0 10px;
+}
+
+h3 {
+  margin: 14px 0 6px;
+  font-size: 14px;
+}
+
+ul {
+  padding-left: 20px;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 12px 0;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 3px 14px 3px 0;
+}
+
 .muted {
   color: var(--muted);
   margin: 0;
-}
-
-.reminder {
-  font-size: 12px;
 }
 
 .rate {
@@ -76,26 +98,14 @@ body {
 }
 
 .rate button:focus-visible,
-a:focus-visible,
-summary:focus-visible {
+a:focus-visible {
   outline: 2px solid var(--link);
   outline-offset: 2px;
-}
-
-.links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
 }
 
 a {
   color: var(--link);
   cursor: pointer;
-}
-
-details summary {
-  cursor: pointer;
-  color: var(--muted);
 }
 
 .error {
