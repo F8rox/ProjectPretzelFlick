@@ -152,6 +152,12 @@ Newest last. Every bug found in live testing goes here with its cause, fix and p
 | 2026-10-20 | Card layout did not match the plain-text thread | First card design was not the agreed layout | Rewrote the card to mirror the text thread, voting at the bottom (`784d0ef`) | Screenshots of cards in the feed |
 | 2026-10-20 | Catch-up threads of one show had an empty "Previous discussion threads" table and no next links (Edgerunners 2 episode 4 showed "None yet" with episodes 1 to 3 posted) | Every catch-up job for a show got the same run time, so they ran at once and each read the episode list before the others had recorded a thread. Same for episodes that air at the same moment | Jobs of one show and start time are staggered 20 s apart in episode order (`sameShowStaggerMs`, `schedule.ts`) | Unit test "catch-up and same-time jobs of one show run in episode order" (61 pass). Live proof 2026-10-20: I'm Dating a Dark Summoner (208025) episode 3 lists episode 2, episode 2 shows the next link (screenshots). Edgerunners 2 threads predate the fix |
 
+### Live checks, 2026-10-20 (later)
+
+- Old Reddit: card thread shows the fallback text (streams, show info, previous-threads table without Score, link to the full post) and the comment box works (screenshot). The fallback is a snapshot: no Score, no Next episode line, no voting there.
+- Phone app: works, reported by the user's friend (not seen by us).
+- Still open: third-party apps, Devvit app directory check, publish.
+
 ## Units
 
 | Unit | Name                              | Status                                   |
