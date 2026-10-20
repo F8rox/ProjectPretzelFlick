@@ -8,6 +8,7 @@ export const config = {
   devSubreddit: 'pretzelflick_dev2',
   /** Mod settings defaults and limits. */
   defaultAutoPost: true,
+  defaultInteractive: true,
   defaultPostDelayMinutes: 0,
   maxPostDelayMinutes: 60,
   /** Streaming links on these hosts (and their subdomains) are never shown, to keep the list to official releases. */
@@ -26,6 +27,12 @@ export const config = {
   scheduleHorizonHours: 48,
   /** Newest history entries kept. */
   historyLength: 200,
+  /** Rating scale and when an average is shown. */
+  minScore: 1,
+  maxScore: 5,
+  minVotesForAverage: 5,
+  /** How many of the most recent earlier episodes show their average on the card. */
+  seasonLineEpisodes: 6,
   /** Entries shown by "Recent activity". */
   historyShown: 20,
   /** Visible lines in the "Recent activity" box, so entries can be read without scrolling. */

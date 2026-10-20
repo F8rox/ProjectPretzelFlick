@@ -4,7 +4,7 @@ import { parseJsonRecord } from './parse.ts';
 import type { EarlierLink, PostedThread, Poster } from './types.ts';
 
 /** `locked` means the edit that adds this thread's "next episode" link failed, most likely because it is archived. */
-export type EpisodeEntry = { postId: string; permalink: string; postedAt: number; status: 'active' | 'locked' };
+export type EpisodeEntry = { postId: string; permalink: string; postedAt: number; status: 'active' | 'locked'; kind: 'text' | 'interactive' };
 
 export type EpisodeStore = {
   hSet(key: string, fields: Record<string, string>): Promise<number>;
@@ -25,7 +25,7 @@ const parseEntry = (value: string): EpisodeEntry | undefined => {
   if (!p) return undefined;
   const { postId, permalink, postedAt, status } = p;
   return typeof postId === 'string' && typeof permalink === 'string' && typeof postedAt === 'number' && (status === 'active' || status === 'locked')
-    ? { postId, permalink, postedAt, status }
+    ? { postId, permalink, postedAt, status, kind: p.kind === 'interactive' ? 'interactive' : 'text' }
     : undefined;
 };
 
@@ -47,8 +47,8 @@ export const earlierLinks = (entries: Map<number, EpisodeEntry>, ep: number): Ea
     .map(([episode, { permalink }]) => ({ episode, permalink }));
 };
 
-export const recordEpisode = (store: EpisodeStore, mediaId: number, ep: number, thread: PostedThread, postedAt: number) =>
-  store.hSet(keys.episodes(mediaId), { [ep]: JSON.stringify({ postId: thread.id, permalink: thread.permalink, postedAt, status: 'active' }) });
+export const recordEpisode = (store: EpisodeStore, mediaId: number, ep: number, thread: PostedThread, postedAt: number, kind: EpisodeEntry['kind']) =>
+  store.hSet(keys.episodes(mediaId), { [ep]: JSON.stringify({ postId: thread.id, permalink: thread.permalink, postedAt, status: 'active', kind }) });
 
 export type LinkOutcome = 'linked' | 'already-linked' | 'no-previous' | 'locked';
 
@@ -64,7 +64,8 @@ export const linkPrevious = async (
   entries: Map<number, EpisodeEntry>,
 ): Promise<LinkOutcome> => {
   const prev = entries.get(ep - 1);
-  if (!prev || prev.status === 'locked') return 'no-previous';
+  // Interactive threads read the next link live from Redis, and have no text body to edit.
+  if (!prev || prev.status === 'locked' || prev.kind === 'interactive') return 'no-previous';
   try {
     const body = await poster.getBody(prev.postId);
     if (body.includes(NEXT_MARKER)) return 'already-linked';

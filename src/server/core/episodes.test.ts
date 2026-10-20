@@ -12,7 +12,7 @@ test('window matches the design table', () => {
 });
 
 test('earlierLinks keeps only the window, excludes the episode itself, and sorts', () => {
-  const entry = (n: number): EpisodeEntry => ({ postId: `t3_${n}`, permalink: `https://r/${n}`, postedAt: 0, status: 'active' });
+  const entry = (n: number): EpisodeEntry => ({ postId: `t3_${n}`, permalink: `https://r/${n}`, postedAt: 0, status: 'active', kind: 'text' });
   const entries = new Map([30, 1, 60, 50, 26, 101].map((n) => [n, entry(n)]));
   assert.deepEqual(earlierLinks(entries, 50).map((l) => l.episode), [26, 30, 60]);
   assert.deepEqual(earlierLinks(entries, 2).map((l) => l.episode), [1, 26, 30, 50]);

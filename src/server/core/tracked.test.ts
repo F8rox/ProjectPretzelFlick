@@ -43,9 +43,9 @@ test('invalid id stores nothing', async () => {
 
 test('settings: defaults, save, and range check', async () => {
   const { store, config } = fakeStore();
-  assert.deepEqual(await getSettings(store), { autoPostEnabled: true, postDelayMinutes: 0 });
-  assert.equal((await saveSettings(store, { autoPostEnabled: false, postDelayMinutes: 15 })).ok, true);
-  assert.deepEqual(await getSettings(store), { autoPostEnabled: false, postDelayMinutes: 15 });
+  assert.deepEqual(await getSettings(store), { autoPostEnabled: true, interactiveThreads: true, postDelayMinutes: 0 });
+  assert.equal((await saveSettings(store, { autoPostEnabled: false, interactiveThreads: false, postDelayMinutes: 15 })).ok, true);
+  assert.deepEqual(await getSettings(store), { autoPostEnabled: false, interactiveThreads: false, postDelayMinutes: 15 });
   for (const bad of [-1, 61, 1.5, '5', Number.NaN]) {
     assert.equal((await saveSettings(store, { postDelayMinutes: bad })).ok, false);
   }

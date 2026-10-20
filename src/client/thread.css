@@ -1,0 +1,104 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1b;
+  --muted: #576f76;
+  --border: #d3d6da;
+  --accent: #d93900;
+  --on-accent: #ffffff;
+  --link: #0b57d0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1113;
+    --fg: #e8eaed;
+    --muted: #9aa5ab;
+    --border: #343a3f;
+    --accent: #ff6a33;
+    --on-accent: #0e1113;
+    --link: #8ab4f8;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.card {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.meta,
+.reminder,
+.muted {
+  color: var(--muted);
+  margin: 0;
+}
+
+.reminder {
+  font-size: 12px;
+}
+
+.rate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rate button {
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.rate button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.rate button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+a {
+  color: var(--link);
+  cursor: pointer;
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.error {
+  color: var(--accent);
+  margin: 0;
+}

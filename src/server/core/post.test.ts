@@ -18,7 +18,9 @@ const job = (over: Partial<PostJobData> = {}): PostJobData => ({
 const setup = () => {
   const hashes = new Map<string, Map<string, string>>();
   const h = (k: string) => hashes.get(k) ?? hashes.set(k, new Map()).get(k)!;
-  const flags = { failNextRecord: false };
+  const flags = { failNextRecord: false, failInteractive: false };
+  const strings = new Map<string, string>();
+  h('config').set('interactiveThreads', 'false'); // most tests cover plain-text threads
   const store: PostStore = {
     hSetNX: async (k, f, v) => (h(k).has(f) ? 0 : (h(k).set(f, v), 1)),
     hGet: async (k, f) => h(k).get(f),
@@ -31,13 +33,19 @@ const setup = () => {
       return 1;
     },
     hGetAll: async (k) => Object.fromEntries(h(k)),
+    set: async (k, v) => void strings.set(k, v),
   };
-  const threads: { title: string; text: string; id: string }[] = [];
+  const threads: { title: string; text: string; id: string; interactive?: boolean }[] = [];
   const edits: string[] = [];
   const failEdit = new Set<string>();
   const poster: Poster = {
     submit: async (title, text) => {
       threads.push({ title, text, id: `t3_${threads.length + 1}` });
+      return { id: `t3_${threads.length}`, permalink: `https://reddit.com/${threads.length}` };
+    },
+    submitInteractive: async (title, text) => {
+      if (flags.failInteractive) throw new Error('custom posts unavailable');
+      threads.push({ title, text, id: `t3_${threads.length + 1}`, interactive: true });
       return { id: `t3_${threads.length}`, permalink: `https://reddit.com/${threads.length}` };
     },
     findByTitle: async (title) => {
@@ -54,7 +62,7 @@ const setup = () => {
   };
   const records: HistoryEntry[] = [];
   const record = async (e: HistoryEntry) => void records.push(e);
-  return { store, poster, threads, edits, failEdit, flags, h, records, deps: { store, poster, nowMs: NOW, record } };
+  return { store, poster, threads, edits, failEdit, flags, h, strings, records, deps: { store, poster, nowMs: NOW, record } };
 };
 
 test('title has only the show title and episode number', () => {
@@ -234,4 +242,49 @@ test('a failed next-episode edit is recorded against the previous episode', asyn
   t.failEdit.add('t3_1');
   await postEpisode(t.deps, ep(2));
   assert.deepEqual(t.records.map((r) => [r.type, r.episode]), [['posted', 1], ['posted', 2], ['failed', 1]]);
+});
+
+const interactive = (t: ReturnType<typeof setup>) => t.h('config').set('interactiveThreads', 'true');
+
+test('an interactive thread is created with the plain-text thread as its fallback, and its details are saved', async () => {
+  const t = setup();
+  interactive(t);
+  assert.equal(await postEpisode(t.deps, ep(1)), 'posted');
+  assert.equal(t.threads.length, 1);
+  assert.equal(t.threads[0]?.interactive, true);
+  assert.equal(t.threads[0]?.text, renderBody(ep(1), []));
+  assert.equal(JSON.parse(t.strings.get('thread:t3_1') ?? '{}').title, 'Sono Show');
+  assert.equal(JSON.parse(t.h('episodes:7').get('1')!).kind, 'interactive');
+});
+
+test('if the interactive post cannot be created, the plain-text thread is posted and the failure is recorded', async () => {
+  const t = setup();
+  interactive(t);
+  t.flags.failInteractive = true;
+  assert.equal(await postEpisode(t.deps, ep(1)), 'posted');
+  assert.equal(t.threads.length, 1);
+  assert.equal(t.threads[0]?.interactive, undefined);
+  assert.deepEqual(t.records.map((r) => r.type), ['failed', 'posted']);
+  assert.match(t.records[0]!.reason, /interactive post failed/);
+  assert.equal(JSON.parse(t.h('episodes:7').get('1')!).kind, 'text');
+});
+
+test('with the setting off, threads are plain text', async () => {
+  const t = setup();
+  await postEpisode(t.deps, ep(1));
+  assert.equal(t.threads[0]?.interactive, undefined);
+});
+
+test('an interactive thread is never passed to the next-episode text edit, but a plain-text one still is', async () => {
+  const t = setup();
+  interactive(t);
+  await postEpisode(t.deps, ep(1));
+  await postEpisode(t.deps, ep(2));
+  assert.deepEqual(t.edits, []);
+  assert.equal(JSON.parse(t.h('episodes:7').get('1')!).status, 'active');
+  const mixed = setup();
+  await postEpisode(mixed.deps, ep(1)); // plain text
+  interactive(mixed);
+  await postEpisode(mixed.deps, ep(2)); // interactive
+  assert.deepEqual(mixed.edits, ['t3_1']);
 });

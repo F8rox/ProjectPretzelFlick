@@ -1,19 +1,22 @@
 import { config, HOUR_MS } from './config.ts';
-import { isRecord, safeHttpsUrl } from './parse.ts';
+import { parsePostJobData, toJobData } from './job-data.ts';
+import { isRecord } from './parse.ts';
 import { keys } from './keys.ts';
 import { getSettings, type SettingsStore } from './settings.ts';
-import type { Airing, Stream } from './anilist.ts';
+import type { Airing } from './anilist.ts';
 import { earlierLinks, linkPrevious, loadEpisodes, recordEpisode } from './episodes.ts';
 import type { HistoryEntry } from './history.ts';
-import type { EarlierLink, Poster } from './types.ts';
+import { saveThread, type ThreadSaveStore } from './thread.ts';
+import { visibleStreams } from './streams.ts';
+import type { EarlierLink, PostJobData, Poster } from './types.ts';
 
 export const POST_JOB = 'post-episode';
 
-export type PostJobData = { mediaId: number; episode: number; airingAt: number; title: string; streams: Stream[] };
+export type { PostJobData };
+export { toJobData };
 
-export const toJobData = ({ mediaId, episode, airingAt, title, streams }: Airing): PostJobData => ({ mediaId, episode, airingAt, title, streams });
-
-export type PostStore = SettingsStore & {
+export type PostStore = SettingsStore &
+  ThreadSaveStore & {
   hSetNX(key: string, field: string, value: string): Promise<number>;
   hGet(key: string, field: string): Promise<string | undefined>;
 };
@@ -24,15 +27,10 @@ export type RecordFn = (entry: HistoryEntry) => Promise<void>;
 
 const escapeMd = (text: string) => text.replace(/([\\`*_[\]])/g, '\\$1');
 
-const isBlockedHost = (url: string) => {
-  const host = new URL(url).hostname;
-  return config.blockedStreamHosts.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
-};
-
 export const renderTitle = (title: string, episode: number) => `${title} - Episode ${episode} discussion`;
 
 export const renderBody = (job: PostJobData, earlier: EarlierLink[]) => {
-  const shown = job.streams.filter((s) => !isBlockedHost(s.url));
+  const shown = visibleStreams(job.streams);
   const streams = shown.length ? shown.map((s) => `- [${escapeMd(s.site)}](${s.url})`).join('\n') : '*None listed.*';
   const rows = earlier.length
     ? ['| Episode | Link |', '| --- | --- |', ...earlier.map((e) => `| ${e.episode} | [Link](${e.permalink}) |`)].join('\n')
@@ -49,16 +47,7 @@ export const renderBody = (job: PostJobData, earlier: EarlierLink[]) => {
 };
 
 /** The job payload comes back from the scheduler, so it is validated like any external input. */
-export const parseJobData = (raw: unknown): PostJobData | undefined => {
-  if (!isRecord(raw) || !isRecord(raw.data)) return undefined;
-  const { mediaId, episode, airingAt, title, streams } = raw.data;
-  if (!Number.isInteger(mediaId) || !Number.isInteger(episode) || !Number.isInteger(airingAt) || typeof title !== 'string') return undefined;
-  const clean = (Array.isArray(streams) ? streams : []).flatMap((s: unknown): Stream[] => {
-    const url = isRecord(s) ? safeHttpsUrl(s.url) : undefined;
-    return isRecord(s) && typeof s.site === 'string' && url ? [{ site: s.site, url }] : [];
-  });
-  return { mediaId: Number(mediaId), episode: Number(episode), airingAt: Number(airingAt), title, streams: clean };
-};
+export const parseJobData = (raw: unknown): PostJobData | undefined => (isRecord(raw) ? parsePostJobData(raw.data) : undefined);
 
 /** `manual` is set by the "post next episode now" mod action, which posts even when automatic posting is off. */
 export type PostDeps = { store: PostStore; poster: Poster; nowMs: number; record: RecordFn; manual?: boolean };
@@ -71,7 +60,8 @@ export type PostDeps = { store: PostStore; poster: Poster; nowMs: number; record
 export const postEpisode = async ({ store, poster, nowMs, record, manual }: PostDeps, job: PostJobData): Promise<PostOutcome> => {
   const { mediaId, episode } = job;
   const note = (type: HistoryEntry['type'], reason: string) => record({ type, mediaId, episode, reason, at: nowMs });
-  if (!manual && !(await getSettings(store)).autoPostEnabled) {
+  const settings = await getSettings(store);
+  if (!manual && !settings.autoPostEnabled) {
     await note('skipped', 'auto-post is off');
     return 'auto-post-off';
   }
@@ -90,9 +80,24 @@ export const postEpisode = async ({ store, poster, nowMs, record, manual }: Post
   const claimed = await store.hSetNX(key, 'state', 'pending');
   let thread = claimed ? undefined : await poster.findByTitle(title);
   const outcome: PostOutcome = thread ? 'recovered' : 'posted';
-  thread ??= await poster.submit(title, renderBody(job, earlierLinks(entries, job.episode)));
+  let kind: 'text' | 'interactive' = 'text';
+  if (!thread) {
+    const body = renderBody(job, earlierLinks(entries, job.episode));
+    if (settings.interactiveThreads) {
+      try {
+        thread = await poster.submitInteractive(title, body);
+        kind = 'interactive';
+      } catch (error) {
+        await note('failed', `interactive post failed, posted plain text instead: ${error}`.slice(0, 200));
+      }
+    }
+    thread ??= await poster.submit(title, body);
+  } else if (settings.interactiveThreads) {
+    kind = 'interactive'; // a recovered thread may be interactive; its stored details are rewritten below
+  }
+  await saveThread(store, thread.id, job);
   // The table entry is written before the posted record, so a crash between them is repaired by the recovery path.
-  await recordEpisode(store, job.mediaId, job.episode, thread, nowMs);
+  await recordEpisode(store, job.mediaId, job.episode, thread, nowMs, kind);
   await store.hSet(key, { state: 'posted', postId: thread.id, permalink: thread.permalink, at: String(nowMs) });
   await note('posted', outcome === 'recovered' ? `recovered after an interrupted run: ${thread.permalink}` : thread.permalink);
   if ((await linkPrevious({ store, poster }, job.mediaId, job.episode, thread, entries)) === 'locked') {

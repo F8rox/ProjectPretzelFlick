@@ -41,13 +41,6 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-next"
-      },
-      {
-        "label": "PretzelFlick: spike post",
-        "description": "Creates the interactive rating test post",
-        "location": "subreddit",
-        "forUserType": "moderator",
-        "endpoint": "/internal/menu/spike-create"
       }
     ]
   },
@@ -87,8 +80,8 @@
     "dir": "dist/client",
     "entrypoints": {
       "default": {
-        "entry": "spike.html",
-        "inline": true
+        "entry": "thread.html",
+        "height": "regular"
       }
     }
   }

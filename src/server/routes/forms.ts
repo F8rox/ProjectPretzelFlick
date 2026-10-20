@@ -34,8 +34,8 @@ forms.post('/tracked-submit', async (c) => {
 });
 
 forms.post('/settings-submit', async (c) => {
-  const { autoPostEnabled, postDelayMinutes } = await readBody(c.req.raw);
-  return c.json<UiResponse>(toast([await saveSettings(redis, { autoPostEnabled, postDelayMinutes })]), 200);
+  const { autoPostEnabled, interactiveThreads, postDelayMinutes } = await readBody(c.req.raw);
+  return c.json<UiResponse>(toast([await saveSettings(redis, { autoPostEnabled, interactiveThreads, postDelayMinutes })]), 200);
 });
 
 forms.post('/activity-submit', (c) => c.json<UiResponse>({}, 200));

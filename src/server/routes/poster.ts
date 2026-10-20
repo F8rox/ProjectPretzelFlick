@@ -17,6 +17,10 @@ export const poster: Poster = {
     const post = await reddit.submitPost({ subredditName: context.subredditName, title, text });
     return { id: post.id, permalink: fullUrl(post.permalink) };
   },
+  submitInteractive: async (title, fallbackText) => {
+    const post = await reddit.submitCustomPost({ subredditName: context.subredditName, title, entry: 'default', textFallback: { text: fallbackText } });
+    return { id: post.id, permalink: fullUrl(post.permalink) };
+  },
   // Only the app's own posts count, so another user's identical title cannot block an episode.
   findByTitle: async (title) => {
     const app = await reddit.getAppUser();

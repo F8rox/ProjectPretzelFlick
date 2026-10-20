@@ -4,7 +4,7 @@ import { describeEntry, record, recent } from '../core/history';
 import { findNextUnposted, runPostJob, toJobData } from '../core/post';
 import { describeSync, fetchForThisInstall, runSync } from './sync';
 import { poster } from './poster';
-import { context, reddit, redis } from '@devvit/web/server';
+import { redis } from '@devvit/web/server';
 import { listShows } from '../core/tracked';
 import { getSettings } from '../core/settings';
 import { config } from '../core/config';
@@ -64,6 +64,7 @@ menu.post('/settings-open', async (c) => {
         acceptLabel: 'Save',
         fields: [
           { type: 'boolean', name: 'autoPostEnabled', label: 'Post threads automatically', defaultValue: settings.autoPostEnabled },
+          { type: 'boolean', name: 'interactiveThreads', label: 'Interactive ratings in threads', helpText: 'Off posts plain-text threads. A thread also falls back to plain text if the interactive post cannot be created.', defaultValue: settings.interactiveThreads },
           { type: 'number', name: 'postDelayMinutes', label: 'Minutes to wait after air time', helpText: `0 to ${config.maxPostDelayMinutes}`, defaultValue: settings.postDelayMinutes },
         ],
       },
@@ -83,15 +84,4 @@ menu.post('/post-next', async (c) => {
     await record(redis, { type: 'failed', reason: `post next episode now failed: ${error}`.slice(0, 200), at: nowMs });
     return c.json<UiResponse>(toast('Post failed. Open "recent activity" for details.'), 200);
   }
-});
-
-// SPIKE (Unit 08): creates one interactive test post. Removed after the spike.
-menu.post('/spike-create', async (c) => {
-  const post = await reddit.submitCustomPost({
-    subredditName: context.subredditName,
-    title: 'PretzelFlick rating spike (test post)',
-    entry: 'default',
-    textFallback: { text: 'Rating spike. If you can read this text, the interactive view is not available in this client.' },
-  });
-  return c.json<UiResponse>(toast(`Created ${post.id}. Open it in the subreddit feed.`), 200);
 });
