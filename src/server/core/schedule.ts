@@ -32,6 +32,17 @@ type Entry = { jobId: string; runAt: number };
 type Wanted = { airing: Airing; runAt: number };
 type Plan = { tracked: number[]; existing: Map<string, Entry>; wanted: Map<string, Wanted>; late: Airing[]; horizonMs: number; expected: Set<string> };
 
+/** Spaces out jobs that share a show and a start time, so each thread is posted after the one before it and can link to it. */
+const staggered = () => {
+  const seen = new Map<string, number>();
+  return (mediaId: number, runAt: number) => {
+    const key = `${mediaId}:${runAt}`;
+    const n = seen.get(key) ?? 0;
+    seen.set(key, n + 1);
+    return runAt + n * config.sameShowStaggerMs;
+  };
+};
+
 const parseEntry = (value: string): Entry | undefined => {
   const p = parseJsonRecord(value);
   return typeof p?.jobId === 'string' && typeof p.runAt === 'number' ? { jobId: p.jobId, runAt: p.runAt } : undefined;
@@ -46,19 +57,20 @@ const parseEntries = (raw: Record<string, string>) =>
 /** Fetches first, so an AniList failure changes nothing. Then sorts every episode into wanted jobs or late catch-ups. */
 const makePlan = async ({ store, fetchAiring, nowMs }: SyncDeps): Promise<Plan> => {
   const tracked = await listShows(store);
-  const airings = await fetchAiring(tracked, nowMs);
+  const airings = (await fetchAiring(tracked, nowMs)).sort((a, b) => a.airingAt - b.airingAt || a.episode - b.episode);
   const { postDelayMinutes } = await getSettings(store);
   const existing = new Map(parseEntries(await store.hGetAll(keys.schedule)));
   const horizonMs = nowMs + config.scheduleHorizonHours * HOUR_MS;
   const lateFromMs = nowMs - config.latenessLimitHours * HOUR_MS;
   const wanted = new Map<string, Wanted>();
   const late: Airing[] = [];
+  const spread = staggered();
   for (const airing of airings) {
     if (!tracked.includes(airing.mediaId)) continue;
     const airMs = airing.airingAt * 1000;
-    const runAt = airMs + postDelayMinutes * MINUTE_MS;
+    const runAt = spread(airing.mediaId, airMs + postDelayMinutes * MINUTE_MS);
     if (runAt > nowMs && airMs <= horizonMs) wanted.set(keys.scheduleField(airing.mediaId, airing.episode), { airing, runAt });
-    else if (runAt <= nowMs && airMs >= lateFromMs) late.push(airing);
+    else if (airMs + postDelayMinutes * MINUTE_MS <= nowMs && airMs >= lateFromMs) late.push(airing);
   }
   // A queued catch-up job belongs to a late episode, so it is expected too and must not be mistaken for a dropped one.
   const expected = new Set([...wanted.keys(), ...late.map((a) => keys.scheduleField(a.mediaId, a.episode))]);
@@ -117,11 +129,12 @@ const queueLate = async (deps: SyncDeps, { late, existing }: Plan): Promise<numb
     await record({ type: 'skipped', mediaId: airing.mediaId, episode: airing.episode, reason: 'over the per-run posting cap', at: nowMs });
   }
   let queued = 0;
+  const spread = staggered();
   for (const airing of late.slice(0, config.maxPostsPerRun)) {
     const field = keys.scheduleField(airing.mediaId, airing.episode);
     if ((await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) === 'posted') continue; // a leftover 'pending' must not block a retry
     if ((existing.get(field)?.runAt ?? 0) > nowMs) continue; // already queued by an earlier sync
-    await startJob(deps, field, airing, nowMs + config.catchUpDelayMs);
+    await startJob(deps, field, airing, spread(airing.mediaId, nowMs + config.catchUpDelayMs));
     queued++;
   }
   return queued;

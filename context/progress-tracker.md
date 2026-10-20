@@ -46,7 +46,7 @@ Evidence I saw myself is marked (seen). Evidence the user reported is marked (re
 - [ ] Not yet confirmed: the `daily-sync` cron at 04:00 UTC fires, and the history shows more than one entry (the box is small).
 - [x] 2026-10-20: Reddit approved `graphql.anilist.co`. `config.fixtureOnDevSubreddit` is now `false`. With real AniList data the playtest posted BLEACH: Thousand-Year Blood War ep 9 and PSYREN ep 3 on `pretzelflick_dev2` (seen in the log and a screenshot: real Crunchyroll link under Streams, AniList link, correct air time). The overnight `daily-sync` cron also fired (seen in the log).
 - [x] 2026-10-20 Devvit 0.14.8 live check: on playtest v0.0.3.12 (new packages) adding show 209219 posted episode 4 (aired 15.6h earlier), shown in the playtest log as `post-episode 209219 ep 4: posted`. The follow-up "check now" correctly reported 0 scheduled, 0 moved, 0 cancelled, 0 queued, because adding a show already runs a sync.
-- [x] 2026-10-20 live check of the manual-post and history changes (playtest v0.0.3.18; user ran all 7 steps and sent a screenshot, seen): with auto-post off the scheduled catch-up recorded `skipped show 207191 ep 3: auto-post is off`; "post next episode now" then posted the thread anyway; a repeat attempt recorded `skipped … already posted`; the "recent activity" box shows about 8 entries at once (`config.historyBoxLines`). YouTube filtering has a unit test but was not seen on a real thread (the show had no YouTube link).
+- [x] 2026-10-20 live check of the manual-post and history changes (playtest v0.0.3.18; user ran all 7 steps and sent a screenshot, seen): with auto-post off the scheduled catch-up recorded `skipped show 207191 ep 3: auto-post is off`; "post next episode now" then posted the thread anyway; a repeat attempt recorded `skipped - already posted`; the "recent activity" box shows about 8 entries at once (`config.historyBoxLines`). YouTube filtering has a unit test but was not seen on a real thread (the show had no YouTube link).
 - [ ] Terms and Privacy form: saved (the links show on the app page).
 
 ## Unit 08 Spike Results (2026-10-20, playtest v0.0.3.20, screenshots seen)
@@ -141,6 +141,16 @@ Bugs found live and fixed:
 - The thread did not appear in the feed because Reddit's spam filter removed it: a "Banned Domain" badge for the AniList streaming link `iqiyi.com` (`d046c21` blocks that host).
 
 Still to verify live: a vote re-vote, comments on a real interactive thread, the plain-text fallback with the setting off, a mixed text and interactive pair, "Previous discussion threads" and "Next episode" on cards (needs two episodes of one show), the old-Reddit fallback of a real thread, and the phone app.
+
+## Bug And Fix Log
+
+Newest last. Every bug found in live testing goes here with its cause, fix and proof.
+
+| Date | Bug | Cause | Fix | Proof |
+|---|---|---|---|---|
+| 2026-10-20 | Live thread missing from the feed | Reddit spam filter removed it ("Banned Domain" badge) because it linked iqiyi.com | `iqiyi.com` added to `blockedStreamHosts` (`d046c21`) | Later threads with OceanVeil, Bilibili, Netflix, Crunchyroll stayed in the feed |
+| 2026-10-20 | Card layout did not match the plain-text thread | First card design was not the agreed layout | Rewrote the card to mirror the text thread, voting at the bottom (`784d0ef`) | Screenshots of cards in the feed |
+| 2026-10-20 | Catch-up threads of one show had an empty "Previous discussion threads" table and no next links (Edgerunners 2 episode 4 showed "None yet" with episodes 1 to 3 posted) | Every catch-up job for a show got the same run time, so they ran at once and each read the episode list before the others had recorded a thread. Same for episodes that air at the same moment | Jobs of one show and start time are staggered 20 s apart in episode order (`sameShowStaggerMs`, `schedule.ts`) | Unit test "catch-up and same-time jobs of one show run in episode order" (61 pass). Live recheck still to do |
 
 ## Units
 

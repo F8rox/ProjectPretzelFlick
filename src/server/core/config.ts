@@ -19,6 +19,8 @@ export const config = {
   latenessLimitHours: 24,
   /** Catch-up posts for missed episodes run this many ms after the sync. */
   catchUpDelayMs: MINUTE_MS,
+  /** Jobs for the same show and start time run this far apart, in episode order, so each thread can link to the one before it. */
+  sameShowStaggerMs: 20_000,
   /** Recent subreddit posts searched when recovering from a crash between submit and record. */
   recoveryScanLimit: 50,
   /** AniList request timeout. */

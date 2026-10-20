@@ -133,3 +133,16 @@ test('a leftover pending marker from an interrupted post does not block catch-up
   upcoming.h('posted:1:5').set('state', 'pending');
   assert.equal((await upcoming.run()).scheduled, 1);
 });
+
+test('catch-up and same-time jobs of one show run in episode order, spaced apart, and other shows are not delayed', async () => {
+  const t = setup([air(1, 3, -2), air(1, 1, -2), air(1, 2, -2), air(2, 1, -2), air(1, 9, 1), air(1, 8, 1)], [1, 2]);
+  assert.deepEqual(await t.run(), { scheduled: 2, moved: 0, cancelled: 0, queued: 4 });
+  const at = (m: number, e: number) => {
+    const entry = JSON.parse(t.h('schedule').get(`${m}:${e}`)!) as { runAt: number };
+    return entry.runAt;
+  };
+  assert.ok(at(1, 1) < at(1, 2) && at(1, 2) < at(1, 3));
+  assert.equal(at(1, 2) - at(1, 1), 20_000);
+  assert.equal(at(2, 1), at(1, 1));
+  assert.equal(at(1, 9) - at(1, 8), 20_000);
+});
