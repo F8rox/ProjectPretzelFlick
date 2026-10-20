@@ -4,11 +4,11 @@ This tracker records verified evidence only. Statuses are not copied from earlie
 
 ## Current Phase
 
-Phase 1: Anime core. Unit 01 is done pending one live check. Units 01 to 06 passed their live checks on fixture data (2026-10-19). The real AniList fetch is blocked by the domain rejection. Unit 07's code and checks are done. Upload, review, domain approval, and installing on a real subreddit need you.
+Phase 1 (anime core) is built and live-verified on `r/pretzelflick_dev2` with real AniList data. Phase 2 Unit 09 (in-thread ratings) is built and partly live-verified (2026-10-20). Not yet published. See `HANDOFF.md` at the repo root for a full resume guide.
 
 ## Current Goal
 
-Clean up the starter (Unit 01), then build tracked shows (02), the AniList client and scheduling (03), and posting with dedup (04), in that order.
+Finish live-verifying Unit 09, then publish for review (`npm run launch`) and get real installs. The council's advice: shipping and installs matter more than more features.
 
 ## Verified State (as of 2026-10-18)
 
@@ -125,41 +125,58 @@ Needs human (I cannot do these):
 - [x] Finding 14 (Low): mod-facing toasts no longer show raw error text. They say "Open recent activity for details", and the detail goes to the history.
 - Evidence for the group: 44 unit tests, `npm run test:types` (app and tests), `npm run lint`, `npm run build` all pass.
 
+## Unit 09: In-Thread Ratings (2026-10-20)
+
+Built (commits `ffa5d66`, `2a81ca3`, `784d0ef`, `d046c21`): each episode thread is an interactive post when the setting "Interactive ratings in threads" is on (default on), with the Phase 1 thread text as `textFallback`. If creating the interactive post throws, the plain-text thread is posted and a `failed` entry is recorded. 60 unit tests, type-check, lint, build pass.
+
+- Data: `thread:{postId}` (the post's details), `ratings:{postId}` (userId to score), `ratingstats:{postId}` (sum and count). Votes use old-vote adjustment, so a re-vote never changes the count. The average is hidden below 5 votes (`config.minVotesForAverage`).
+- API: `GET /api/thread` and `POST /api/vote`. `userId` and `postId` come from the server context, never the request. Score must be an integer 1 to 5, the user must be logged in, and the post must be a stored thread.
+- Card (`src/client/thread.tsx`): mirrors the plain-text thread in the same order (Next episode line, title and episode, Aired at in UTC, Reminder, Streams, Show information, Previous discussion threads table with a Score column) and ends with "Rate this episode" and the 1 to 5 buttons. Theme-aware, compact, `height: regular`.
+- Interactive threads are not touched by the next-episode text edit (`kind: 'interactive'` in `episodes:{mediaId}` entries). The card reads the next link live from Redis. Best-effort refresh of the old-Reddit fallback text is NOT built.
+
+Live evidence (user screenshots, seen): the card renders for show 213188 episode 20, voting works and shows the vote saved with the chosen button highlighted ("1 vote (average shows after 5)"), the new layout matches the plain-text order. The history showed `posted show 213188 ep 20` with no "interactive post failed" entry.
+
+Bugs found live and fixed:
+- A leftover `pending` marker could block catch-up queuing (`2a81ca3`). Not the cause of the missing thread in the end, but a real bug.
+- The thread did not appear in the feed because Reddit's spam filter removed it: a "Banned Domain" badge for the AniList streaming link `iqiyi.com` (`d046c21` blocks that host).
+
+Still to verify live: a vote re-vote, comments on a real interactive thread, the plain-text fallback with the setting off, a mixed text and interactive pair, "Previous discussion threads" and "Next episode" on cards (needs two episodes of one show), the old-Reddit fallback of a real thread, and the phone app.
+
 ## Units
 
 | Unit | Name                              | Status                                   |
 | ---- | --------------------------------- | ---------------------------------------- |
 | 01   | Foundation cleanup                | Done. Live check passed                  |
 | 02   | Tracked shows and settings        | Done. Live check passed (reported)       |
-| 03   | AniList client and scheduling     | Done on fixture data. Real AniList fetch blocked (domain rejected) |
+| 03   | AniList client and scheduling     | Done. Live check passed with real AniList data (domain approved 2026-10-20) |
 | 04   | Thread posting and dedup          | Done. Live check passed on fixture data  |
 | 05   | Episode links and next edit       | Done. Live check passed on fixture data  |
 | 06   | History and failure handling      | Done. Live check passed (history box is small) |
 | 07   | Hardening and release             | Code work done. Release steps need you (see Unit 07 below) |
 | 08   | Season Hub spike (Phase 2)        | Done. Decision recorded (option A)       |
-| 09   | In-thread ratings (Phase 2)       | In progress                              |
+| 09   | In-thread ratings (Phase 2)       | Built (60 unit tests). Partly live-verified, see the Unit 09 section |
 
 ## Inputs Needed From User
 
-| Input                                   | Where                                         | Unblocks                                  |
-| --------------------------------------- | --------------------------------------------- | ----------------------------------------- |
-| AniList domain approval: REJECTED (2026-10-19, no reason shown). Find the reason, appeal or re-request, or choose a fallback (see Open Questions) | developers.reddit.com app, Developer Settings | Unit 03 live fetch, Unit 04 real data |
-| Run `npm run dev`, confirm the menu items, both forms, "check now", "post next episode now" (twice), post two consecutive episodes, "recent activity", and the `post-episode` log | `r/pretzelflick_dev2` | Unit 01 to 06 live checks |
-| Fetch Domains README section reviewed   | `README.md`                                   | Unit 07 review submission                 |
-| App description, listing details, and links to the Terms and Privacy Policy (drafts in `legal/`, contact must be added and published at a public URL) | Developer Settings | Unit 07 review submission, domain approval |
-| Upload and publish for review           | `npx devvit upload`, then `npm run launch`    | Unit 07 review criterion                  |
-| A real subreddit to install on          | Mods of 2-3 anime subs                        | Success criterion 9                       |
+| Input | Where | Unblocks |
+| ----- | ----- | -------- |
+| Retest on a fresh show (track `160803` and/or `155723`) and report whether a thread shows the red "Banned Domain" badge | `r/pretzelflick_dev2` | Whether more stream hosts must be blocked (see Unit 09 section) |
+| Check an interactive thread in the Reddit phone app and one third-party app | Phone | Unit 09 live criterion, release gate |
+| Two consecutive episodes of one show, to see the "Previous discussion threads" table and the "Next episode" line on cards | `r/pretzelflick_dev2` | Unit 09 live criteria |
+| Switch "Interactive ratings in threads" off and confirm a plain-text thread posts | Settings on the dev sub | Unit 09 fallback criterion |
+| Check the Devvit app directory for a competing episode-thread app (about 15 minutes) | developers.reddit.com | Positioning, council risk |
+| Upload and publish for review | `npx devvit upload`, then `npm run launch` (runs `release:check`) | Unit 07 review criterion. Sends the app to Reddit: the user's decision |
+| A real subreddit and a mod's permission to install | Mods of small anime subs | Success criterion 9 |
 
 ## Open Questions
 
-0. Likely cause, from Reddit's HTTP fetch docs: "Any app that uses `fetch` must upload Terms and Conditions and a Privacy Policy" and save their links in the app details form. Both fields were empty. Drafts are in `legal/`. Not confirmed as the reason. The global fetch allowlist has no anime data source (checked 2026-10-19). App version 0.0.2 was uploaded privately on 2026-10-19 to resubmit the domain.
-0b. Reddit rejected `graphql.anilist.co` under Domain exceptions (2026-10-19). Unknown reason. No official appeal process was found. Next: read the "here" and "globally allowlisted domain" links on that page, ask the App Review team why, and re-request with a justification. Fallback options if it stays rejected: a globally allowlisted data source, or mod-entered schedules (loses automatic delay handling). The dev subreddit keeps using the fixture meanwhile.
-
-1. Does a Devvit custom post keep normal comments, identify the viewer, and accept a text fallback? (Phase 2 spike, Unit 08.)
-2. How many scheduler jobs per installation does Devvit allow? Unit 03 schedules one per episode inside a 48-hour horizon, so a large tracked list could hit a limit. Check in the playtest.
-3. What is the maximum run time of a scheduler job and of a menu action?
-4. Does Reddit's app review accept an app that posts automatically? (Find out by submitting early in Unit 07.)
-5. Is a text search by title needed for adding shows, or are AniList IDs enough for Phase 1?
+1. Reddit's spam filter removes a post that links to a banned domain. `iqiyi.com` removed the Jueshi Zhan Hun 2 episode 20 thread live (2026-10-20), and is now blocked in `config.blockedStreamHosts`. Reddit's full list is unknown. Unverified idea: detect a removed post right after creating it, delete it, repost without streaming links, and record it in the history.
+2. Do interactive threads render in the Reddit phone app and in third-party apps? Old Reddit shows the fallback text plus a "view the full post" link (verified on the spike post).
+3. Why did the new Reddit feed not show the removed thread even when sorted by New? Probably because it was removed by the filter, not a feed problem. Not separately confirmed.
+4. How many scheduler jobs per installation does Devvit allow, and what is the run-time limit of a job or menu action? Unverified.
+5. Does Reddit's app review accept an app that posts automatically? Unknown until the app is submitted.
+6. Is a title search needed for adding shows, or are AniList IDs enough? (IDs only so far.)
+7. Release verification: AniList times are Japan air times, and global streams can come 1 to 2 hours later or slip. A sketch exists (check the streaming service before posting, post-on-release only). Held on purpose. Needs a public feed or API per service, and a Reddit domain approval for each. Do not use Crunchyroll's undocumented internal API (the user and I agreed the risk is too high).
 
 ## Architecture Decisions
 
@@ -184,3 +201,4 @@ Needs human (I cannot do these):
 ## Session Notes
 
 - 2026-10-18: Read the doc "PretzelFlick - App Overview & Technical Design". Built the first episode hash logic, then reworked the plan after the council review. Created the Devvit test app, found the domain allowlist block, and set up this spec-driven structure.
+- 2026-10-20: Council decided rage-bait is out and ratings go inside each thread. Unit 09 built. AniList domain approved after the Terms and Privacy links were added. Devvit packages upgraded to 0.14.8. Claude co-author trailers removed from history and the user asked not to add them again. Resume with `HANDOFF.md`.
