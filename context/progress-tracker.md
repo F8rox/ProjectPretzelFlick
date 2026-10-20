@@ -58,7 +58,9 @@ Evidence I saw myself is marked (seen). Evidence the user reported is marked (re
 - [ ] Old Reddit shows the text fallback: not yet checked.
 - [ ] Mobile app rendering: not yet checked.
 - Finding: in the new Reddit feed a custom post shows only its web view, not the post text. If an episode thread itself became the custom post, the streams list, earlier-episode table, and spoiler reminder would have to be drawn inside the web view, with the same text kept as `textFallback` for old Reddit and third-party apps. The default frame is a tall white box and needs a compact, theme-aware card.
-- Decision pending: ratings inside every thread (thread becomes a custom post) versus one Season Hub post per show linked from plain-text threads.
+- [x] Old Reddit gate passed (2026-10-20, screenshot seen): old Reddit shows the `textFallback` text and adds its own "This post contains content not supported on old Reddit. Click here to view the full post" link.
+- [ ] Phone app rendering and a third-party app: not checked yet. Covered meanwhile by the automatic plain-text fallback and the per-install setting. Must be checked before release.
+- DECISION (2026-10-20, council 5 of 5, user agreed): Option A. Ratings inside every episode thread, which becomes an interactive post, with the plain-text thread kept as the automatic fallback and a mod setting. A separate Season Hub is dropped for now. Costs accepted: thread content lives inside the card on new Reddit, mods cannot hand-edit the body, old Reddit and third-party users cannot vote. Re-vote totals use old-vote adjustment, not a naive `hincrby`.
 
 ## Unit 07: Hardening And Release (2026-10-19)
 
@@ -134,8 +136,8 @@ Needs human (I cannot do these):
 | 05   | Episode links and next edit       | Done. Live check passed on fixture data  |
 | 06   | History and failure handling      | Done. Live check passed (history box is small) |
 | 07   | Hardening and release             | Code work done. Release steps need you (see Unit 07 below) |
-| 08   | Season Hub spike (Phase 2)        | Not started                              |
-| 09   | Ratings and season chart (Phase 2)| Not started                              |
+| 08   | Season Hub spike (Phase 2)        | Done. Decision recorded (option A)       |
+| 09   | In-thread ratings (Phase 2)       | In progress                              |
 
 ## Inputs Needed From User
 
