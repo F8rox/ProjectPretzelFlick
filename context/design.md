@@ -20,7 +20,7 @@ Threads are plain Reddit markdown text posts, so they work on old Reddit, new Re
 
 Rules:
 
-- Official links only. Never link or embed unauthorized media.
+- Official links only. Never link or embed unauthorized media. YouTube links are dropped from Streams (`config.blockedStreamHosts`), because official anime releases are not on YouTube.
 - Every link comes from AniList data. Nothing is invented.
 - Times use UTC with a plain statement. Never claim precision beyond AniList's `airingAt`.
 - Skipped weeks are explained in the activity history, not by posting filler threads.

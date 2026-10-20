@@ -24,10 +24,16 @@ export type RecordFn = (entry: HistoryEntry) => Promise<void>;
 
 const escapeMd = (text: string) => text.replace(/([\\`*_[\]])/g, '\\$1');
 
+const isBlockedHost = (url: string) => {
+  const host = new URL(url).hostname;
+  return config.blockedStreamHosts.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
+};
+
 export const renderTitle = (title: string, episode: number) => `${title} - Episode ${episode} discussion`;
 
 export const renderBody = (job: PostJobData, earlier: EarlierLink[]) => {
-  const streams = job.streams.length ? job.streams.map((s) => `- [${escapeMd(s.site)}](${s.url})`).join('\n') : '*None listed.*';
+  const shown = job.streams.filter((s) => !isBlockedHost(s.url));
+  const streams = shown.length ? shown.map((s) => `- [${escapeMd(s.site)}](${s.url})`).join('\n') : '*None listed.*';
   const rows = earlier.length
     ? ['| Episode | Link |', '| --- | --- |', ...earlier.map((e) => `| ${e.episode} | [Link](${e.permalink}) |`)].join('\n')
     : '*None yet.*';

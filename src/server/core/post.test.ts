@@ -68,6 +68,20 @@ test('body lists streams, or says none are listed, and escapes markdown in title
   assert.match(renderBody(job(), [{ episode: 2, permalink: 'https://r/2' }]), /\| 2 \| \[Link\]\(https:\/\/r\/2\) \|/);
 });
 
+test('YouTube links are never listed as streams, and a show with only YouTube links says none listed', () => {
+  const yt = [
+    { site: 'Youtube', url: 'https://www.youtube.com/watch?v=abc' },
+    { site: 'Youtube', url: 'https://youtu.be/abc' },
+    { site: 'Youtube', url: 'https://m.youtube.com/watch?v=abc' },
+  ];
+  const crunchy = { site: 'Crunchyroll', url: 'https://crunchyroll.com/x' };
+  const body = renderBody(job({ streams: [...yt, crunchy] }), []);
+  assert.match(body, /- \[Crunchyroll\]/);
+  assert.doesNotMatch(body, /youtu/i);
+  assert.match(renderBody(job({ streams: yt }), []), /\*None listed\.\*/);
+  assert.match(renderBody(job({ streams: [{ site: 'Notyoutube', url: 'https://notyoutube.com/x' }] }), []), /notyoutube\.com/);
+});
+
 test('running the job twice posts once', async () => {
   const t = setup();
   assert.equal(await postEpisode(t.deps, job()), 'posted');

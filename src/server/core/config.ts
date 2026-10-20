@@ -10,6 +10,8 @@ export const config = {
   defaultAutoPost: true,
   defaultPostDelayMinutes: 0,
   maxPostDelayMinutes: 60,
+  /** Streaming links on these hosts (and their subdomains) are never shown, to keep the list to official releases. */
+  blockedStreamHosts: ['youtube.com', 'youtu.be'],
   /** Links per thread are limited to this many before the window slides. */
   linkWindowSize: 50,
   /** An aired episode with no post is still posted if it aired within this many hours. */
