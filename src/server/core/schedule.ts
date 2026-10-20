@@ -95,7 +95,7 @@ const scheduleWanted = async (deps: SyncDeps, { existing, wanted }: Plan) => {
   let scheduled = 0;
   let moved = 0;
   for (const [field, { airing, runAt }] of wanted) {
-    if (await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) continue;
+    if ((await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) === 'posted') continue; // a leftover 'pending' must not block a retry
     const current = existing.get(field);
     const live = current && current.runAt > nowMs ? current : undefined;
     if (live?.runAt === runAt) continue;
@@ -119,7 +119,7 @@ const queueLate = async (deps: SyncDeps, { late, existing }: Plan): Promise<numb
   let queued = 0;
   for (const airing of late.slice(0, config.maxPostsPerRun)) {
     const field = keys.scheduleField(airing.mediaId, airing.episode);
-    if (await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) continue;
+    if ((await store.hGet(keys.posted(airing.mediaId, airing.episode), 'state')) === 'posted') continue; // a leftover 'pending' must not block a retry
     if ((existing.get(field)?.runAt ?? 0) > nowMs) continue; // already queued by an earlier sync
     await startJob(deps, field, airing, nowMs + config.catchUpDelayMs);
     queued++;

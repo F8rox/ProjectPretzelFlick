@@ -124,3 +124,12 @@ test('an episode dropped from AniList and episodes over the cap are recorded as 
   await capped.run();
   assert.equal(capped.records.filter((r) => r.type === 'skipped').length, 2);
 });
+
+test('a leftover pending marker from an interrupted post does not block catch-up or scheduling', async () => {
+  const late = setup([air(1, 4, -2)]);
+  late.h('posted:1:4').set('state', 'pending');
+  assert.equal((await late.run()).queued, 1);
+  const upcoming = setup([air(1, 5, 2)]);
+  upcoming.h('posted:1:5').set('state', 'pending');
+  assert.equal((await upcoming.run()).scheduled, 1);
+});
