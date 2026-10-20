@@ -39,7 +39,7 @@ menu.post('/activity-open', async (c) => {
       form: {
         title: 'Recent activity',
         acceptLabel: 'Close',
-        fields: [{ type: 'paragraph', name: 'log', label: 'Newest first', disabled: true, defaultValue: entries.map(describeEntry).join('\n') || 'No activity yet.' }],
+        fields: [{ type: 'paragraph', name: 'log', label: 'Newest first', disabled: true, lineHeight: config.historyBoxLines, defaultValue: entries.map(describeEntry).join('\n') || 'No activity yet.' }],
       },
     },
   });
@@ -76,7 +76,7 @@ menu.post('/post-next', async (c) => {
   try {
     const airing = await findNextUnposted(redis, await fetchForThisInstall(await listShows(redis), nowMs), nowMs);
     if (!airing) return c.json<UiResponse>(toast('Nothing to post: no tracked episode has aired without a thread yet.'), 200);
-    const outcome = await runPostJob({ store: redis, poster, nowMs, record: (entry) => record(redis, entry) }, toJobData(airing));
+    const outcome = await runPostJob({ store: redis, poster, nowMs, manual: true, record: (entry) => record(redis, entry) }, toJobData(airing));
     return c.json<UiResponse>(toast(outcome === 'failed' ? 'Post failed. Open "recent activity" for details.' : `${airing.title} episode ${airing.episode}: ${outcome}`), 200);
   } catch (error) {
     console.error(`post-next failed: ${error}`);

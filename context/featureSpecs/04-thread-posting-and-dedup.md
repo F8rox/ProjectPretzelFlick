@@ -16,7 +16,7 @@ Units 01 to 03.
 - The scheduler job endpoint calls `postEpisode(deps, mediaId, episode)`.
 - Two-phase dedup from `architecture-context.md`: set `posted:{mediaId}:{episode}` to `pending` only if absent, submit, then write `posted` with the post id and permalink.
 - Crash recovery: if `pending` exists without a post id, search the subreddit's recent posts for the exact title before posting. If found, record it. If not, post.
-- Respect `autoPostEnabled`. If off, record a skip.
+- Respect `autoPostEnabled` for scheduled and catch-up posts. If off, record a skip. The manual "Post next episode now" action ignores it (it is an explicit mod request) but still obeys dedup.
 - Replace the `MOCK:` test posting menu item with a real "Post next episode now" mod action that uses the same function. It still obeys dedup.
 - Enforce the posts-per-run cap.
 

@@ -60,17 +60,18 @@ export const parseJobData = (raw: unknown): PostJobData | undefined => {
   return { mediaId: Number(mediaId), episode: Number(episode), airingAt: Number(airingAt), title, streams: clean };
 };
 
-export type PostDeps = { store: PostStore; poster: Poster; nowMs: number; record: RecordFn };
+/** `manual` is set by the "post next episode now" mod action, which posts even when automatic posting is off. */
+export type PostDeps = { store: PostStore; poster: Poster; nowMs: number; record: RecordFn; manual?: boolean };
 
 /**
  * Posts one episode thread at most once. A `pending` record is written before submitting, so a crash
  * between submit and record is recovered by finding the thread by title instead of posting again.
  * shortcut: two runs racing on the same episode can both see `pending` and both post, upgrade if jobs can overlap.
  */
-export const postEpisode = async ({ store, poster, nowMs, record }: PostDeps, job: PostJobData): Promise<PostOutcome> => {
+export const postEpisode = async ({ store, poster, nowMs, record, manual }: PostDeps, job: PostJobData): Promise<PostOutcome> => {
   const { mediaId, episode } = job;
   const note = (type: HistoryEntry['type'], reason: string) => record({ type, mediaId, episode, reason, at: nowMs });
-  if (!(await getSettings(store)).autoPostEnabled) {
+  if (!manual && !(await getSettings(store)).autoPostEnabled) {
     await note('skipped', 'auto-post is off');
     return 'auto-post-off';
   }

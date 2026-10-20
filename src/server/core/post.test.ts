@@ -111,6 +111,17 @@ test('a failed submit leaves pending and the retry posts', async () => {
   assert.equal(t.threads.length, 1);
 });
 
+test('a manual post ignores the auto-post setting, a scheduled one still obeys it', async () => {
+  const t = setup();
+  t.h('config').set('autoPostEnabled', 'false');
+  assert.equal(await postEpisode(t.deps, ep(1)), 'auto-post-off');
+  assert.equal(t.threads.length, 0);
+  assert.equal(await postEpisode({ ...t.deps, manual: true }, ep(1)), 'posted');
+  assert.equal(t.threads.length, 1);
+  assert.equal(await postEpisode({ ...t.deps, manual: true }, ep(1)), 'duplicate'); // manual still obeys dedup
+  assert.equal(t.threads.length, 1);
+});
+
 test('auto-post off and too-late episodes post nothing', async () => {
   const t = setup();
   t.h('config').set('autoPostEnabled', 'false');

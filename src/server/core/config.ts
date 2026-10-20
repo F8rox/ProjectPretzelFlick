@@ -28,6 +28,8 @@ export const config = {
   historyLength: 200,
   /** Entries shown by "Recent activity". */
   historyShown: 20,
+  /** Visible lines in the "Recent activity" box, so entries can be read without scrolling. */
+  historyBoxLines: 20,
   /** Hard cap on threads posted by one sync run. */
   maxPostsPerRun: 10,
 };
