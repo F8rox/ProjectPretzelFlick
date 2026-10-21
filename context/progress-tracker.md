@@ -160,7 +160,7 @@ Newest last. Every bug found in live testing goes here with its cause, fix and p
 
 ### Title search (2026-10-21)
 
-Competitor found: EpisodeScheduler (23 communities, search UI, hub, pinning, templates, no ratings in its README). Gap closed first: adding a show by title. "Tracked shows" menu form has an "Add by title" field; submit searches AniList (airing and upcoming only) and opens a pick form (`pickForm`, `/pick-submit`), then tracks and syncs. Verified: 62 unit tests, types, lint, build, and the query against real AniList. NOT verified live: the form-to-form step in Reddit's UI.
+Competitor found: EpisodeScheduler (23 communities, search UI, hub, pinning, templates, no ratings in its README). Gap closed first: adding a show by title. "Tracked shows" menu form has an "Add by title" field; submit searches AniList (airing and upcoming only) and opens a pick form (`pickForm`, `/pick-submit`), then tracks and syncs. Verified: 62 unit tests, types, lint, build, and the query against real AniList. Live 2026-10-21: works in Reddit's UI (user confirmed). Note: the playtest must be restarted after a `devvit.json` change (new form), or Reddit shows the old form and the ID error.
 
 ## Units
 
