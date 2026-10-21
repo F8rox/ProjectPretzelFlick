@@ -95,3 +95,32 @@ export const fetchAiring = async (ids: number[], nowMs: number, fixture = false)
   });
   return parseAiring(await postWithRetry(body));
 };
+
+export type ShowMatch = { id: number; title: string; year: number | null; status: string };
+
+const SEARCH_QUERY = `query ($search: String) {
+  Page(perPage: 8) {
+    media(search: $search, type: ANIME, status_in: [RELEASING, NOT_YET_RELEASED], sort: SEARCH_MATCH) {
+      id
+      title { romaji english }
+      seasonYear
+      status
+    }
+  }
+}`;
+
+export const parseSearch = (json: unknown): ShowMatch[] => {
+  const page = isRecord(json) && isRecord(json.data) ? json.data.Page : undefined;
+  const list = isRecord(page) ? page.media : undefined;
+  if (!Array.isArray(list)) throw bad();
+  return list.map((item: unknown) => {
+    const title = isRecord(item) && isRecord(item.title) ? item.title : undefined;
+    const name = title?.english ?? title?.romaji;
+    if (!isRecord(item) || typeof name !== 'string' || !Number.isInteger(item.id) || typeof item.status !== 'string') throw bad();
+    return { id: Number(item.id), title: name, year: Number.isInteger(item.seasonYear) ? Number(item.seasonYear) : null, status: item.status };
+  });
+};
+
+/** Airing and upcoming anime matching a title, best match first. */
+export const searchAnime = async (term: string): Promise<ShowMatch[]> =>
+  parseSearch(await postWithRetry(JSON.stringify({ query: SEARCH_QUERY, variables: { search: term.trim().slice(0, 100) } })));

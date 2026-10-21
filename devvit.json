@@ -73,6 +73,7 @@
   },
   "forms": {
     "trackedForm": "/internal/form/tracked-submit",
+    "pickForm": "/internal/form/pick-submit",
     "settingsForm": "/internal/form/settings-submit",
     "activityForm": "/internal/form/activity-submit"
   },

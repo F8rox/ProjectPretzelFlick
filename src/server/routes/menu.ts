@@ -18,7 +18,8 @@ const toast = (message: string): UiResponse => ({ showToast: message });
 menu.post('/tracked-open', async (c) => {
   const shows = await listShows(redis);
   const fields: Form['fields'] = [
-    { type: 'string', name: 'add', label: 'Add AniList media ID', helpText: 'The number in the AniList URL, for example anilist.co/anime/154587' },
+    { type: 'string', name: 'search', label: 'Add by title', helpText: 'Type part of a show name, then pick it from the matches. Leave empty to use an ID.' },
+    { type: 'string', name: 'add', label: 'Or add AniList media ID', helpText: 'The number in the AniList URL, for example anilist.co/anime/154587' },
   ];
   if (shows.length) {
     fields.push({ type: 'select', name: 'remove', label: 'Stop tracking', multiSelect: true, options: shows.map((id) => ({ label: String(id), value: String(id) })) });
