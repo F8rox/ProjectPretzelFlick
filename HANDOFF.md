@@ -21,7 +21,7 @@ PretzelFlick is a Reddit **Devvit web app** that posts a spoiler-safe discussion
 - **Competitor found:** EpisodeScheduler (23 communities, React dashboard, TVMaze/SIMKL/AniList, hub, pinning, templates; no ratings in its README). Our edge is in-thread ratings and the r/anime-style layout.
 - **Not published.** `npm run launch` (publish for Reddit review) has not been run. No real subreddit has installed it yet.
 - Last uploaded version: 0.0.3 (playtest builds are v0.0.3.xx). Devvit packages: 0.14.8.
-- Git: see section 13 for whether the latest commits are pushed. A local branch `backup-before-rewrite` exists and can be deleted.
+- Git: `main` is pushed to origin as of `21e3381` (2026-10-22). A local branch `backup-before-rewrite` exists and can be deleted.
 
 ## 3. How to resume in a new chat
 
