@@ -12,13 +12,16 @@ PretzelFlick is a Reddit **Devvit web app** that posts a spoiler-safe discussion
 - Reddit account that owns the app: `u/YunoF8`. Logged in with the Devvit CLI (`npx devvit whoami`).
 - The original design doc: `PretzelFlick - App Overview & Technical Design.docx` on the user's Desktop. It has been superseded by `context/`.
 
-## 2. Status snapshot (2026-10-20)
+## 2. Status snapshot (2026-10-22)
 
-- **Phase 1 (anime core): built, 60 unit tests, live-verified** on the dev sub with real AniList data: tracked shows and settings forms, daily sync and one scheduled job per air time, catch-up of missed episodes, two-phase dedup, thread posting, earlier-episode table, next-episode link, activity history, manual "post next episode now".
-- **Phase 2 Unit 09 (in-thread ratings): built, partly live-verified.** Each thread is an interactive post (a card with the thread content and 1 to 5 voting) with the plain-text thread as fallback. Card renders, voting works, layout matches the text thread.
+- **Beta feature-complete.** 62 unit tests, types, lint and build clean. Everything below is live-verified on the dev sub except where noted.
+- **Phase 1 (anime core): built, live-verified** on the dev sub with real AniList data: tracked shows and settings forms, daily sync and one scheduled job per air time, catch-up of missed episodes, two-phase dedup, thread posting, earlier-episode table, next-episode link, activity history, manual "post next episode now".
+- **Phase 2 Unit 09 (in-thread ratings): built and live-verified.** Each thread is an interactive post (a card with the thread content and 1 to 5 voting) with the plain-text thread as fallback. Voting, re-vote, comments, the previous-threads table, the next-episode line, the setting off (plain text), old Reddit fallback and the phone app (reported by a friend) all checked.
+- **Title search (2026-10-21):** Tracked shows form has "Add by title"; it searches AniList (airing and upcoming anime) and opens a pick form (`pickForm`, `/internal/form/pick-submit`). Live-verified. After a `devvit.json` change, restart `npm run dev` or Reddit shows the old form.
+- **Competitor found:** EpisodeScheduler (23 communities, React dashboard, TVMaze/SIMKL/AniList, hub, pinning, templates; no ratings in its README). Our edge is in-thread ratings and the r/anime-style layout.
 - **Not published.** `npm run launch` (publish for Reddit review) has not been run. No real subreddit has installed it yet.
 - Last uploaded version: 0.0.3 (playtest builds are v0.0.3.xx). Devvit packages: 0.14.8.
-- Local `main` is **ahead of `origin/main` by 18 commits** (they were not pushed). The remote head is `30192dc`. A local branch `backup-before-rewrite` exists and can be deleted.
+- Git: see section 13 for whether the latest commits are pushed. A local branch `backup-before-rewrite` exists and can be deleted.
 
 ## 3. How to resume in a new chat
 
@@ -87,6 +90,11 @@ Key tunables are in `src/server/core/config.ts` (lateness limit 24h, horizon 48h
 
 ## 7. Facts learned the hard way
 
+- **Same-show jobs must be staggered.** Catch-up jobs (and episodes airing at the same moment) used to share one run time, ran concurrently, and each read the episode list before the others saved theirs, so tables and next links were empty. Fixed with `config.sameShowStaggerMs` (20 s) in `schedule.ts`, in episode order. Live-verified with I'm Dating a Dark Summoner (208025).
+- The app only looks back `latenessLimitHours` (24) for missed episodes. To test two-episode behaviour with a weekly show, temporarily raise it (to 240) in `config.ts`, then set it back. Do not commit the change.
+- A dev playtest that is not running means Reddit shows the last installed version. If a new form or field is missing, restart `npm run dev` (port 5678 in use means one is already running).
+- Reddit's developer site is blocked in the built-in browser. Check the Devvit app directory by hand.
+
 - **Devvit Redis has no set commands and no `hExists`.** Use hashes (`hSetNX`, `hGet`, `hKeys`).
 - **Domain approval needs Terms and Conditions and a Privacy Policy links** saved in Developer Settings. The first request was rejected until they were added; then it was approved. `graphql.anilist.co` is approved. Each domain needs its own request.
 - Custom posts: the new Reddit feed shows only the web view, not the post text. The server sees the viewer (`context.userId`) and post (`context.postId`). Comments work natively. Old Reddit shows the `textFallback` plus its own "view the full post" link. Entrypoint heights are `short`, `regular`, `tall` (default tall).
@@ -103,19 +111,19 @@ Menus and forms; real AniList fetch and the daily 04:00 sync; scheduled and catc
 
 ## 9. Still to verify live (Unit 09 and release)
 
-1. Retest with a fresh show (`160803`, `155723`) and check for the "Banned Domain" badge. Hosts to watch: `oceanveil.net`, `v.qq.com`, `wetv.vip`.
-2. Re-vote, comments on a real interactive thread, setting off gives a plain-text thread, a mixed text and interactive pair.
-3. "Previous discussion threads" table and "Next episode" line on cards (needs two consecutive episodes of one show).
-4. A real interactive thread on old Reddit, the Reddit phone app, and a third-party app.
-5. Check the Devvit app directory for a competing episode-thread app (about 15 minutes).
+1. Third-party Reddit apps (not tested). The phone app was only reported by a friend.
+2. Banned-domain removals on stream hosts not yet seen. OceanVeil, Bilibili, Netflix, Crunchyroll, HIDIVE stayed in the feed. Still watch `v.qq.com`, `wetv.vip`.
+3. A real sub with real traffic (nothing published yet).
+4. Edgerunners 2 threads were posted before the stagger fix, so their tables and next links are empty (expected).
 
 ## 10. Next steps, in priority order
 
-1. Finish the live checks above and fix what they show.
+1. Push to GitHub (user approves), then publish with `npm run launch` (user's call).
 2. **Optional hardening:** detect a removed post right after creating it, delete it, repost without streaming links, and record it in the history. Unverified how Reddit reports the removal, so check live first.
 3. **Publish:** `npm run launch` (runs `release:check`, `deploy`, then `devvit publish`). This sends the app to Reddit for review, so it is the user's call. Fill in the app description in Developer Settings first.
 4. **Get installs:** DM mods of 10 to 15 small anime subs that show currently airing shows (offer to set it up). The council said this is the biggest risk: building more before anyone installs. Offer to draft the pitch.
-5. Small improvements, all optional: skip catch-up queuing while auto-post is off (it records repeated "auto-post is off" entries on every sync); raise the wait setting past 60 minutes (global releases lag Japan by 1 to 2 hours); best-effort refresh of the old-Reddit fallback text so older interactive threads get the "Next episode" line; title search for adding shows; a mod-written neutral discussion prompt.
+5. **Idea (Phase 3, not decided):** a community reaction digest, an AI summary of the thread's comments posted about 24 h after air. Needs an LLM host approved by Reddit, an API key, per-sub caps, a mod toggle (off by default) and a privacy policy update. Do not use AI for episode synopses (it invents plot).
+5a. Small improvements, all optional: skip catch-up queuing while auto-post is off (it records repeated "auto-post is off" entries on every sync); raise the wait setting past 60 minutes (global releases lag Japan by 1 to 2 hours); best-effort refresh of the old-Reddit fallback text so older interactive threads get the "Next episode" line; a mod-written neutral discussion prompt.
 5b. **Parked, held on purpose:** release verification against streaming services (post only when the episode is actually on the stream; needs a public feed per service and a Reddit domain approval each; avoid undocumented APIs); Phase 3 TMDB for TV and movies and a React mod panel.
 
 ## 11. Known risks
@@ -144,4 +152,4 @@ npx devvit whoami / npm run login
 
 ## 13. Recent commits (newest first)
 
-`d046c21` drop iqiyi.com links; `784d0ef` card mirrors the text layout; `2a81ca3` pending marker no longer blocks catch-up; `ffa5d66` interactive threads with in-thread voting; `2a0d64f` Unit 08 decision and Unit 09 spec; `297f442` spike; `fb4356d` manual post ignores auto-post, taller history box; `1a462e6` drop YouTube links; `55371f6` Devvit 0.14.8; `483e320` fixture off after domain approval; earlier Phase 1 commits back to the initial starter.
+`b240b6c`/`fa90393` title search; `57ff89b` stagger same-show jobs; `3bdc08d` handoff and CLAUDE.md; `d046c21` drop iqiyi.com links; `784d0ef` card mirrors the text layout; `2a81ca3` pending marker no longer blocks catch-up; `ffa5d66` interactive threads with in-thread voting; `2a0d64f` Unit 08 decision and Unit 09 spec; `297f442` spike; `fb4356d` manual post ignores auto-post, taller history box; `1a462e6` drop YouTube links; `55371f6` Devvit 0.14.8; `483e320` fixture off after domain approval; earlier Phase 1 commits back to the initial starter.
